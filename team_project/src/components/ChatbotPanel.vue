@@ -1,11 +1,14 @@
 <script setup>
 import { ref } from 'vue'
+import { sendChatMessage } from '../services/chatApi'
 
 const messages = ref([
   { role: 'assistant', content: '안녕하세요! 지역 정보나 커뮤니티 내용을 도와드릴게요.' }
 ])
 
 const input = ref('')
+const isLoading = ref(false)
+const statusMessage = ref('')
 
 function buildFallbackReply(text) {
   const lower = text.toLowerCase()
@@ -20,13 +23,23 @@ function buildFallbackReply(text) {
 
 async function sendMessage() {
   const text = input.value.trim()
-  if (!text) return
+  if (!text || isLoading.value) return
 
   messages.value.push({ role: 'user', content: text })
   input.value = ''
+  statusMessage.value = ''
+  isLoading.value = true
 
-  const answer = buildFallbackReply(text)
-  messages.value.push({ role: 'assistant', content: answer })
+  try {
+    const answer = await sendChatMessage(text)
+    messages.value.push({ role: 'assistant', content: answer })
+  } catch (error) {
+    const fallbackReply = buildFallbackReply(text)
+    messages.value.push({ role: 'assistant', content: fallbackReply })
+    statusMessage.value = error.message || '챗봇 응답을 가져오지 못했습니다.'
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
@@ -38,11 +51,19 @@ async function sendMessage() {
       <div v-for="(message, index) in messages" :key="index" class="bubble" :class="message.role">
         {{ message.content }}
       </div>
+      <div v-if="isLoading" class="bubble assistant loading">답변을 생성하는 중입니다...</div>
     </div>
 
+    <p v-if="statusMessage" class="chat-status">{{ statusMessage }}</p>
+
     <div class="chat-input">
-      <input v-model="input" @keyup.enter="sendMessage" placeholder="예: 광주/전라의 관광지 추천해줘" />
-      <button @click="sendMessage">전송</button>
+      <input
+        v-model="input"
+        @keyup.enter="sendMessage"
+        :disabled="isLoading"
+        placeholder="예: 광주/전라의 관광지 추천해줘"
+      />
+      <button :disabled="isLoading" @click="sendMessage">{{ isLoading ? '전송 중' : '전송' }}</button>
     </div>
   </section>
 </template>
