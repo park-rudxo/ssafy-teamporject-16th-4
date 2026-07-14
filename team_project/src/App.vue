@@ -4,69 +4,72 @@ import RegionOverview from './components/RegionOverview.vue'
 import CommunityBoard from './components/CommunityBoard.vue'
 import ChatbotPanel from './components/ChatbotPanel.vue'
 
-// Load all JSON files under src/data/서울 at build time
-const modules = import.meta.glob('./data/서울/*.json', { eager: true })
+// 모든 JSON을 로드하고 서울 폴더만 사용
+const modules = import.meta.glob('./data/**/*.json', { eager: true })
 
-// Normalizer: convert various source shapes into { name, lat, lng, description, image, id, type }
-function normalizeFromItem(item) {
+function asNumber(v) {
+  if (v === undefined || v === null || v === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
+}
+
+function normalizeFromItem(item, fallbackType = null) {
   if (!item) return null
+
   const name = item.title || item.name || item.place || ''
-  const lat = item.mapy ? Number(item.mapy) : (item.lat ? Number(item.lat) : null)
-  const lng = item.mapx ? Number(item.mapx) : (item.lng ? Number(item.lng) : null)
+  const lat = asNumber(item.mapy ?? item.lat ?? item.latitude ?? null)
+  const lng = asNumber(item.mapx ?? item.lng ?? item.longitude ?? null)
   const description = item.addr1 || item.addr2 || item.description || ''
   const image = item.firstimage || item.firstimage2 || item.image || ''
   const id = item.contentid || item.id || null
-  const type = item.contenttype || item.contenttypeid || item.contentType || null
+  const rawType = item.contentType || item.contenttype || item.contenttypeid || item.contentTypeId || fallbackType || null
+  const type = rawType === null ? null : String(rawType)
+
   return { name, lat, lng, description, image, id, type }
 }
 
 const seoul = { name: '서울', description: '서울 권역 통합 데이터', highlights: [] }
 
+console.log('DEBUG: glob keys count:', Object.keys(modules).length)
+console.log('DEBUG: glob keys sample:', Object.keys(modules).slice(0, 20))
+
 for (const key in modules) {
+  if (!key.includes('/서울/')) continue
+
   const mod = modules[key]
   const data = mod?.default ?? mod
   if (!data) continue
 
-  // If file follows API envelope with items[]
+  const fallbackType = data.contentType || data.contentTypeId || data.contenttype || data.contenttypeid || null
+  let entries = []
+
   if (Array.isArray(data.items)) {
-    data.items.forEach(i => {
-      const h = normalizeFromItem(i)
-      if (h && h.name) seoul.highlights.push(h)
-    })
-    continue
+    entries = data.items
+  } else if (Array.isArray(data)) {
+    entries = data
+  } else if (Array.isArray(data.highlights)) {
+    entries = data.highlights
+  } else if (data.name || data.title) {
+    entries = [data]
   }
 
-  // If file is plain array of place objects
-  if (Array.isArray(data)) {
-    data.forEach(i => {
-      const h = normalizeFromItem(i)
-      if (h && h.name) seoul.highlights.push(h)
+  const normalized = entries
+    .map(e => {
+      if (typeof e === 'string') return { name: e, lat: null, lng: null, description: '' }
+      return normalizeFromItem(e, fallbackType)
     })
-    continue
-  }
+    .filter(Boolean)
 
-  // If file has highlights array (your original format)
-  if (Array.isArray(data.highlights)) {
-    data.highlights.forEach(h0 => {
-      if (typeof h0 === 'string') {
-        seoul.highlights.push({ name: h0, lat: null, lng: null, description: '' })
-      } else {
-        const h = normalizeFromItem(h0)
-        if (h && h.name) seoul.highlights.push(h)
-      }
-    })
-    continue
-  }
+  const total = normalized.length
+  const withCoords = normalized.filter(h => h?.lat !== null && h?.lng !== null).length
+  console.log(`DEBUG: module ${key} — total: ${total}, withCoords: ${withCoords}`)
+  console.log('DEBUG: sample normalized (first 5):', normalized.slice(0, 5))
 
-  // Single object describing one place
-  if (data.name || data.title) {
-    const h = normalizeFromItem(data)
+  normalized.forEach(h => {
     if (h && h.name) seoul.highlights.push(h)
-    continue
-  }
+  })
 }
 
-// Deduplicate by id or name+coords
 const seen = new Map()
 seoul.highlights = seoul.highlights.filter(h => {
   const key = h.id || `${h.name}|${h.lat ?? ''}|${h.lng ?? ''}`
@@ -75,7 +78,10 @@ seoul.highlights = seoul.highlights.filter(h => {
   return true
 })
 
-// Expose region as ref
+console.log('DEBUG: seoul.highlights total:', seoul.highlights.length)
+console.log('DEBUG: seoul.highlights with coords:', seoul.highlights.filter(h => h.lat !== null && h.lng !== null).length)
+console.log('DEBUG: seoul.highlights sample (first 10):', seoul.highlights.slice(0, 10))
+
 const currentRegion = ref(seoul)
 const activeTab = ref('map') // 'map' | 'community' | 'chat'
 </script>
