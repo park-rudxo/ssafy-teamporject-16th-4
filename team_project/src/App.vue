@@ -22,8 +22,9 @@ function normalizeFromItem(item, fallbackType = null) {
   const description = item.addr1 || item.addr2 || item.description || ''
   const image = item.firstimage || item.firstimage2 || item.image || ''
   const id = item.contentid || item.id || null
-  const rawType = item.contentType || item.contenttype || item.contenttypeid || item.contentTypeId || fallbackType || null
-  const type = rawType === null ? null : String(rawType)
+
+  const itemType = item.contentType ?? item.contenttype ?? item.contentTypeId ?? item.contenttypeId ?? fallbackType
+  const type = itemType === null ? null : String(itemType)
 
   return { name, lat, lng, description, image, id, type }
 }
@@ -40,7 +41,7 @@ for (const key in modules) {
   const data = mod?.default ?? mod
   if (!data) continue
 
-  const fallbackType = data.contentType || data.contentTypeId || data.contenttype || data.contenttypeid || null
+  const fallbackType = data.contentType ?? data.contentTypeId ?? data.contenttype ?? data.contenttypeid ?? null
   let entries = []
 
   if (Array.isArray(data.items)) {
