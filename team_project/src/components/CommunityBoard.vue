@@ -7,8 +7,9 @@ const editingId = ref(null)
 const searchQuery = ref('')
 const showBookmarksOnly = ref(false)
 const currentView = ref('list')
-const deletePassword = ref('')
 const deleteTargetId = ref(null)
+const deletePassword = ref('')
+const deleteError = ref('')
 
 const filteredPosts = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
@@ -49,6 +50,7 @@ function savePosts() {
 function resetForm() {
   form.value = { title: '', content: '', password: '', nickname: '' }
   editingId.value = null
+  closeDeleteModal()
 }
 
 function openWriteForm() {
@@ -110,24 +112,25 @@ function startEdit(post) {
 function openDeleteModal(post) {
   deleteTargetId.value = post.id
   deletePassword.value = ''
+  deleteError.value = ''
 }
 
 function confirmDelete() {
   if (!deleteTargetId.value) {
-    alert('삭제할 게시글을 찾을 수 없습니다.')
+    deleteError.value = '삭제할 게시글을 찾을 수 없습니다.'
     closeDeleteModal()
     return
   }
 
   if (!deletePassword.value) {
-    alert('비밀번호를 입력하세요.')
+    deleteError.value = '비밀번호를 입력하세요.'
     return
   }
 
   const postIndex = posts.value.findIndex(p => p.id === deleteTargetId.value)
 
   if (postIndex === -1) {
-    alert('게시글을 찾을 수 없습니다.')
+    deleteError.value = '게시글을 찾을 수 없습니다.'
     closeDeleteModal()
     return
   }
@@ -135,20 +138,20 @@ function confirmDelete() {
   const post = posts.value[postIndex]
 
   if (post.password !== deletePassword.value) {
-    alert('비밀번호가 일치하지 않습니다.')
     deletePassword.value = ''
+    deleteError.value = '비밀번호가 일치하지 않습니다.'
     return
   }
 
   posts.value.splice(postIndex, 1)
   savePosts()
-  alert('게시글이 삭제되었습니다.')
   closeDeleteModal()
 }
 
 function closeDeleteModal() {
-  deletePassword.value = ''
   deleteTargetId.value = null
+  deletePassword.value = ''
+  deleteError.value = ''
 }
 
 function toggleBookmark(post) {
@@ -198,6 +201,7 @@ function toggleBookmark(post) {
 
         <div v-if="deleteTargetId === post.id" class="delete-password-form">
           <p>비밀번호를 입력하세요:</p>
+          <p v-if="deleteError" class="error-text">{{ deleteError }}</p>
           <input v-model="deletePassword" type="password" placeholder="비밀번호" />
           <div class="actions">
             <button type="button" @click="confirmDelete">삭제</button>
@@ -417,6 +421,12 @@ label input[type="checkbox"] {
 
 .delete-password-form .actions button:hover {
   background-color: #ffb300;
+}
+
+.error-text {
+  color: #b91c1c;
+  margin: 6px 0 8px;
+  font-size: 13px;
 }
 
 .write-view {
