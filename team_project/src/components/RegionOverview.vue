@@ -7,7 +7,6 @@ const typeColors = {
   관광지: '#1f77b4',
   레포츠: '#ff7f0e',
   여행코스: '#2ca02c',
-  축제공연공연행사: '#d62728', // 오류날 수 있으니 기존 그대로 확인
   축제공연행사: '#d62728',
   숙박: '#9467bd',
   쇼핑: '#8c564b',
@@ -24,6 +23,7 @@ const props = defineProps({
 const mapRef = ref(null)
 let map = null
 let markersLayer = null
+let boundsInitialized = false
 const hasCoords = ref(false)
 
 const typeKeys = Object.keys(typeColors)
@@ -75,6 +75,7 @@ function initMap() {
   }).addTo(map)
 
   markersLayer = L.layerGroup().addTo(map)
+  boundsInitialized = false
   updateMarkers()
   setTimeout(() => map.invalidateSize && map.invalidateSize(), 200)
 }
@@ -118,15 +119,16 @@ function updateMarkers() {
   const visiblePoints = allPoints.filter(p => selectedTypes.value.has(p.type))
   visiblePoints.forEach(point => markersLayer.addLayer(createMarker(point)))
 
-  if (visiblePoints.length === 1) {
-    map.setView([visiblePoints[0].lat, visiblePoints[0].lng], 14)
-  } else if (visiblePoints.length > 0) {
-    const group = L.featureGroup(markersLayer.getLayers())
-    if (group.getBounds().isValid()) {
-      map.fitBounds(group.getBounds().pad(0.2))
+  if (!boundsInitialized && visiblePoints.length > 0) {
+    if (visiblePoints.length === 1) {
+      map.setView([visiblePoints[0].lat, visiblePoints[0].lng], 14)
+    } else {
+      const group = L.featureGroup(markersLayer.getLayers())
+      if (group.getBounds().isValid()) {
+        map.fitBounds(group.getBounds().pad(0.2))
+      }
     }
-  } else {
-    map.setView([37.5665, 126.9780], 12)
+    boundsInitialized = true
   }
 }
 
@@ -144,6 +146,7 @@ onBeforeUnmount(() => {
 watch(
   () => props.region,
   () => {
+    boundsInitialized = false
     updateMarkers()
     setTimeout(() => map && map.invalidateSize && map.invalidateSize(), 200)
   },
