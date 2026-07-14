@@ -1,0 +1,104 @@
+:root {
+  font-family: Arial, sans-serif;
+  color: #222;
+  background: #f5f7fb;
+}
+
+body {
+  margin: 0;
+}
+
+.app-shell {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tabs button,
+.form button,
+.actions button,
+.chat-input button {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.tabs button.active {
+  background: #2563eb;
+  color: white;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 16px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+input,
+textarea {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.post {
+  border-top: 1px solid #eee;
+  padding: 12px 0;
+}
+
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.chat-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.bubble {
+  padding: 10px;
+  border-radius: 10px;
+  max-width: 80%;
+}
+
+.bubble.user {
+  background: #dbeafe;
+  align-self: flex-end;
+}
+
+.bubble.assistant {
+  background: #f3f4f6;
+  align-self: flex-start;
+}
+
+.chat-input {
+  display: flex;
+  gap: 8px;
+}
