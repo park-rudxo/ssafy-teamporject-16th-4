@@ -2,7 +2,7 @@
 import { onMounted, ref, computed } from 'vue'
 
 const posts = ref([])
-const form = ref({ title: '', content: '', password: '' })
+const form = ref({ title: '', content: '', password: '', nickname: '' })
 const editingId = ref(null)
 const searchQuery = ref('')
 const showBookmarksOnly = ref(false)
@@ -17,10 +17,13 @@ const filteredPosts = computed(() => {
     : posts.value
 
   if (!query) return base
-  return base.filter(post =>
-    post.title.toLowerCase().includes(query) ||
-    post.content.toLowerCase().includes(query)
-  )
+
+  return base.filter(post => {
+    const title = post.title?.toLowerCase() || ''
+    const content = post.content?.toLowerCase() || ''
+    const nickname = (post.nickname || '익명').toLowerCase()
+    return title.includes(query) || content.includes(query) || nickname.includes(query)
+  })
 })
 
 onMounted(() => {
@@ -29,8 +32,11 @@ onMounted(() => {
 
 function loadPosts() {
   try {
-    posts.value = JSON.parse(localStorage.getItem('localhub-posts') || '[]')
-      .map(post => ({ bookmarked: false, ...post }))
+    posts.value = JSON.parse(localStorage.getItem('localhub-posts') || '[]').map(post => ({
+      bookmarked: false,
+      nickname: '익명',
+      ...post
+    }))
   } catch {
     posts.value = []
   }
@@ -41,7 +47,7 @@ function savePosts() {
 }
 
 function resetForm() {
-  form.value = { title: '', content: '', password: '' }
+  form.value = { title: '', content: '', password: '', nickname: '' }
   editingId.value = null
 }
 
@@ -55,8 +61,14 @@ function openListView() {
   currentView.value = 'list'
 }
 
+function formatDate(value) {
+  return value ? new Date(value).toLocaleString() : ''
+}
+
 function submitPost() {
   if (!form.value.title || !form.value.content || !form.value.password) return
+
+  const nickname = (form.value.nickname || '').trim() || '익명'
 
   if (editingId.value) {
     const target = posts.value.find(post => post.id === editingId.value)
@@ -67,12 +79,14 @@ function submitPost() {
 
     target.title = form.value.title.trim()
     target.content = form.value.content.trim()
+    target.nickname = nickname
   } else {
     posts.value.unshift({
       id: Date.now(),
       title: form.value.title.trim(),
       content: form.value.content.trim(),
       password: form.value.password,
+      nickname,
       createdAt: new Date().toISOString(),
       bookmarked: false
     })
@@ -84,7 +98,12 @@ function submitPost() {
 
 function startEdit(post) {
   editingId.value = post.id
-  form.value = { title: post.title, content: post.content, password: '' }
+  form.value = {
+    title: post.title,
+    content: post.content,
+    password: '',
+    nickname: post.nickname || ''
+  }
   currentView.value = 'write'
 }
 
@@ -106,7 +125,7 @@ function confirmDelete() {
   }
 
   const postIndex = posts.value.findIndex(p => p.id === deleteTargetId.value)
-  
+
   if (postIndex === -1) {
     alert('게시글을 찾을 수 없습니다.')
     closeDeleteModal()
@@ -152,10 +171,16 @@ function toggleBookmark(post) {
 
       <div v-for="post in filteredPosts" :key="post.id" class="post">
         <div class="post-header">
-          <strong>{{ post.title }}</strong>
-          <small>{{ new Date(post.createdAt).toLocaleString() }}</small>
+          <div>
+            <strong>{{ post.title }}</strong>
+            <div class="post-meta">
+              <span class="nickname">{{ post.nickname || '익명' }}</span>
+              <small>{{ formatDate(post.createdAt) }}</small>
+            </div>
+          </div>
         </div>
         <p>{{ post.content }}</p>
+
         <div class="actions">
           <button type="button" @click="startEdit(post)">수정</button>
           <button type="button" @click="openDeleteModal(post)">삭제</button>
@@ -177,10 +202,17 @@ function toggleBookmark(post) {
 
     <div v-else class="write-view">
       <button type="button" @click="openListView" class="btn-list">목록 보기</button>
+
       <form class="form" @submit.prevent="submitPost">
-        <input v-model="form.title" placeholder="제목" />
+        <div class="form-group">
+          <input v-model="form.title" placeholder="제목" />
+        </div>
+        <div class="form-group">
+          <input v-model="form.nickname" placeholder="닉네임 (선택)" />
+        </div>
         <textarea v-model="form.content" placeholder="내용"></textarea>
         <input v-model="form.password" type="password" placeholder="수정/삭제용 비밀번호" />
+
         <div class="actions">
           <button type="submit">{{ editingId ? '수정하기' : '작성하기' }}</button>
           <button type="button" @click="openListView">취소</button>
@@ -191,7 +223,6 @@ function toggleBookmark(post) {
 </template>
 
 <style scoped>
-/* 버튼 공통 스타일 */
 .btn-write,
 .btn-list {
   padding: 8px 16px;
@@ -203,7 +234,6 @@ function toggleBookmark(post) {
   transition: background-color 0.3s ease;
 }
 
-/* 글 작성 버튼 - 초록색 */
 .btn-write {
   background-color: #4CAF50;
 }
@@ -212,7 +242,6 @@ function toggleBookmark(post) {
   background-color: #45a049;
 }
 
-/* 목록 보기 버튼 - 파란색 */
 .btn-list {
   background-color: #2196F3;
 }
@@ -221,7 +250,6 @@ function toggleBookmark(post) {
   background-color: #0b7dda;
 }
 
-/* 카드 스타일 */
 .card {
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -235,7 +263,6 @@ function toggleBookmark(post) {
   color: #333;
 }
 
-/* 입력 필드 */
 input[type="text"],
 input[type="password"],
 textarea {
@@ -262,7 +289,6 @@ textarea:focus {
   box-shadow: 0 0 5px rgba(33, 150, 243, 0.3);
 }
 
-/* 검색 및 필터 영역 */
 label {
   display: flex;
   align-items: center;
@@ -275,7 +301,6 @@ label input[type="checkbox"] {
   cursor: pointer;
 }
 
-/* 게시글 */
 .post {
   border: 1px solid #eee;
   border-radius: 6px;
@@ -296,6 +321,19 @@ label input[type="checkbox"] {
   color: #333;
 }
 
+.post-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.nickname {
+  font-size: 13px;
+  color: #4CAF50;
+  font-weight: 600;
+}
+
 .post-header small {
   color: #999;
   font-size: 12px;
@@ -307,7 +345,6 @@ label input[type="checkbox"] {
   line-height: 1.5;
 }
 
-/* 액션 버튼 */
 .actions {
   display: flex;
   gap: 8px;
@@ -330,7 +367,6 @@ label input[type="checkbox"] {
   background-color: #e0e0e0;
 }
 
-/* 삭제 비밀번호 폼 */
 .delete-password-form {
   background-color: #fff3cd;
   border: 1px solid #ffc107;
@@ -358,7 +394,6 @@ label input[type="checkbox"] {
   background-color: #ffb300;
 }
 
-/* 글쓰기 뷰 */
 .write-view {
   margin-top: 20px;
 }
@@ -371,6 +406,11 @@ label input[type="checkbox"] {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
 }
 
 .form .actions {
