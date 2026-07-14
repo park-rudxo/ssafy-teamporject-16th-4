@@ -178,15 +178,22 @@ function toggleBookmark(post) {
               <small>{{ formatDate(post.createdAt) }}</small>
             </div>
           </div>
+
+          <button
+            type="button"
+            class="bookmark-btn"
+            @click="toggleBookmark(post)"
+            :aria-label="post.bookmarked ? '북마크 해제' : '북마크 추가'"
+          >
+            {{ post.bookmarked ? '★' : '☆' }}
+          </button>
         </div>
+
         <p>{{ post.content }}</p>
 
         <div class="actions">
           <button type="button" @click="startEdit(post)">수정</button>
           <button type="button" @click="openDeleteModal(post)">삭제</button>
-          <button type="button" @click="toggleBookmark(post)">
-            {{ post.bookmarked ? '북마크 해제' : '북마크' }}
-          </button>
         </div>
 
         <div v-if="deleteTargetId === post.id" class="delete-password-form">
@@ -314,6 +321,8 @@ label input[type="checkbox"] {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+  position: relative;
+  padding-right: 40px;
 }
 
 .post-header strong {
@@ -330,7 +339,7 @@ label input[type="checkbox"] {
 
 .nickname {
   font-size: 13px;
-  color: #4CAF50;
+  color: #000000;
   font-weight: 600;
 }
 
@@ -365,6 +374,22 @@ label input[type="checkbox"] {
 
 .actions button:hover {
   background-color: #e0e0e0;
+}
+
+.bookmark-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  cursor: pointer;
+  color: #f4b400;
+  padding: 0;
+}
+
+.bookmark-btn:hover {
+  transform: scale(1.1);
 }
 
 .delete-password-form {
