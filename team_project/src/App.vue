@@ -1,15 +1,90 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import RegionOverview from './components/RegionOverview.vue'
 import CommunityBoard from './components/CommunityBoard.vue'
 import ChatbotPanel from './components/ChatbotPanel.vue'
-import regionData from './data/sample-region.json'
 
-const regions = ['서울', '대전/충청', '구미/경북', '광주/전라', '부산']
-const selectedRegion = ref('광주/전라')
-const activeTab = ref('overview')
+// 모든 JSON을 로드하고 서울 폴더만 사용
+const modules = import.meta.glob('./data/**/*.json', { eager: true })
 
-const currentRegionData = computed(() => regionData[selectedRegion.value] || null)
+function asNumber(v) {
+  if (v === undefined || v === null || v === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
+}
+
+function normalizeFromItem(item, fallbackType = null) {
+  if (!item) return null
+
+  const name = item.title || item.name || item.place || ''
+  const lat = asNumber(item.mapy ?? item.lat ?? item.latitude ?? null)
+  const lng = asNumber(item.mapx ?? item.lng ?? item.longitude ?? null)
+  const description = item.addr1 || item.addr2 || item.description || ''
+  const image = item.firstimage || item.firstimage2 || item.image || ''
+  const id = item.contentid || item.id || null
+
+  const itemType = item.contentType ?? item.contenttype ?? item.contentTypeId ?? item.contenttypeId ?? fallbackType
+  const type = itemType === null ? null : String(itemType)
+
+  return { name, lat, lng, description, image, id, type }
+}
+
+const seoul = { name: '서울', description: '서울 권역 통합 데이터', highlights: [] }
+
+console.log('DEBUG: glob keys count:', Object.keys(modules).length)
+console.log('DEBUG: glob keys sample:', Object.keys(modules).slice(0, 20))
+
+for (const key in modules) {
+  if (!key.includes('/서울/')) continue
+
+  const mod = modules[key]
+  const data = mod?.default ?? mod
+  if (!data) continue
+
+  const fallbackType = data.contentType ?? data.contentTypeId ?? data.contenttype ?? data.contenttypeid ?? null
+  let entries = []
+
+  if (Array.isArray(data.items)) {
+    entries = data.items
+  } else if (Array.isArray(data)) {
+    entries = data
+  } else if (Array.isArray(data.highlights)) {
+    entries = data.highlights
+  } else if (data.name || data.title) {
+    entries = [data]
+  }
+
+  const normalized = entries
+    .map(e => {
+      if (typeof e === 'string') return { name: e, lat: null, lng: null, description: '' }
+      return normalizeFromItem(e, fallbackType)
+    })
+    .filter(Boolean)
+
+  const total = normalized.length
+  const withCoords = normalized.filter(h => h?.lat !== null && h?.lng !== null).length
+  console.log(`DEBUG: module ${key} — total: ${total}, withCoords: ${withCoords}`)
+  console.log('DEBUG: sample normalized (first 5):', normalized.slice(0, 5))
+
+  normalized.forEach(h => {
+    if (h && h.name) seoul.highlights.push(h)
+  })
+}
+
+const seen = new Map()
+seoul.highlights = seoul.highlights.filter(h => {
+  const key = h.id || `${h.name}|${h.lat ?? ''}|${h.lng ?? ''}`
+  if (seen.has(key)) return false
+  seen.set(key, true)
+  return true
+})
+
+console.log('DEBUG: seoul.highlights total:', seoul.highlights.length)
+console.log('DEBUG: seoul.highlights with coords:', seoul.highlights.filter(h => h.lat !== null && h.lng !== null).length)
+console.log('DEBUG: seoul.highlights sample (first 10):', seoul.highlights.slice(0, 10))
+
+const currentRegion = ref(seoul)
+const activeTab = ref('map') // 'map' | 'community' | 'chat'
 </script>
 
 <template>
@@ -17,29 +92,18 @@ const currentRegionData = computed(() => regionData[selectedRegion.value] || nul
     <header class="topbar">
       <div>
         <h1>LocalHub</h1>
-        <p>익명 커뮤니티와 지역 정보 챗봇</p>
+        <p>익명 커뮤니티와 지역 정보 챗봇 (서울)</p>
       </div>
-      <select v-model="selectedRegion">
-        <option v-for="region in regions" :key="region" :value="region">
-          {{ region }}
-        </option>
-      </select>
     </header>
 
     <nav class="tabs">
-      <button :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">
-        지역 정보
-      </button>
-      <button :class="{ active: activeTab === 'community' }" @click="activeTab = 'community'">
-        커뮤니티
-      </button>
-      <button :class="{ active: activeTab === 'chat' }" @click="activeTab = 'chat'">
-        챗봇
-      </button>
+      <button :class="{ active: activeTab === 'map' }" @click="activeTab = 'map'">지도</button>
+      <button :class="{ active: activeTab === 'community' }" @click="activeTab = 'community'">커뮤니티</button>
+      <button :class="{ active: activeTab === 'chat' }" @click="activeTab = 'chat'">챗봇</button>
     </nav>
 
-    <main>
-      <RegionOverview v-if="activeTab === 'overview' && currentRegionData" :region="currentRegionData" />
+    <main class="main-area">
+      <RegionOverview v-if="activeTab === 'map'" :region="currentRegion" />
       <CommunityBoard v-else-if="activeTab === 'community'" />
       <ChatbotPanel v-else />
     </main>
