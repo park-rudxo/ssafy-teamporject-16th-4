@@ -1,5 +1,7 @@
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 const posts = ref([])
 
@@ -18,7 +20,7 @@ const form = ref({
   content: '',
   password: '',
   nickname: '',
-  category: categories[0] // 기본값: 첫 카테고리
+  category: categories[0]
 })
 
 const editingId = ref(null)
@@ -26,7 +28,7 @@ const editingId = ref(null)
 const searchQuery = ref('')
 const searchScope = ref('all')
 const showBookmarksOnly = ref(false)
-const sortMode = ref('latest') // 'latest' | 'likes' | 'views'
+const sortMode = ref('latest')
 const currentView = ref('list')
 const selectedPostId = ref(null)
 
@@ -38,12 +40,8 @@ const editorRef = ref(null)
 const imageInputRef = ref(null)
 const fileInputRef = ref(null)
 const passwordInputRef = ref(null)
-const errors = ref({
-  title: '',
-  content: '',
-  password: ''
-})
-const selectedCategoryFilter = ref('all') // 'all' 또는 카테고리 문자열
+const errors = ref({ title: '', content: '', password: '' })
+const selectedCategoryFilter = ref('all')
 
 const fontSizeValue = ref('3')
 const textColorValue = ref('#111827')
@@ -53,43 +51,236 @@ const linkUrl = ref('')
 const linkText = ref('')
 const savedRange = ref(null)
 
+/* Props: App.vue may pass importedCourse */
+const props = defineProps({ importedCourse: Object })
+const localImportedCourse = ref(null)
+
+/* saved courses modal + preview map helpers */
+const savedCourses = ref([])
+const coursesModalOpen = ref(false)
+const selectedCoursePreview = ref(null)
+const courseMapRef = ref(null)
+let courseMap = null
+let courseLayer = null
+const COURSES_STORAGE_KEY = 'localhub-courses'
+
+function destroyCourseMap() {
+  if (courseMap) {
+    try { courseMap.remove() } catch (e) {}
+    courseMap = null
+    courseLayer = null
+  }
+}
+
+function renderCourseOnMap(course) {
+  if (!course || !Array.isArray(course.stops) || !course.stops.length) return
+  nextTick(() => {
+    if (!courseMap) {
+      courseMap = L.map(courseMapRef.value, { scrollWheelZoom: false, zoomControl: false })
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(courseMap)
+      courseLayer = L.layerGroup().addTo(courseMap)
+    } else {
+      courseLayer.clearLayers()
+    }
+
+    const latlngs = course.stops
+      .map(s => {
+        const lat = Number(s.lat ?? s.mapy ?? s.raw?.lat ?? null)
+        const lng = Number(s.lng ?? s.mapx ?? s.raw?.lng ?? null)
+        return (Number.isFinite(lat) && Number.isFinite(lng)) ? [lat, lng] : null
+      })
+      .filter(Boolean)
+
+    latlngs.forEach((ll, idx) => {
+      L.marker(ll).bindPopup(`${idx + 1}. ${course.stops[idx].name || course.stops[idx].title || ''}`).addTo(courseLayer)
+    })
+
+    if (latlngs.length) {
+      L.polyline(latlngs, { color: '#2ca02c', weight: 4 }).addTo(courseLayer)
+      courseMap.fitBounds(L.polyline(latlngs).getBounds(), { padding: [20, 20] })
+    }
+  })
+}
+
+function selectCourseForPreview(course) {
+  selectedCoursePreview.value = course
+  renderCourseOnMap(course)
+}
+
+function loadLocalSavedCourses() {
+  try {
+    savedCourses.value = JSON.parse(localStorage.getItem(COURSES_STORAGE_KEY) || '[]')
+  } catch (e) {
+    console.error('코스 로드 실패', e)
+    savedCourses.value = []
+  }
+  selectedCoursePreview.value = null
+  destroyCourseMap()
+}
+
+function openCoursesModal() {
+  loadLocalSavedCourses()
+  coursesModalOpen.value = true
+}
+
+function closeCoursesModal() {
+  coursesModalOpen.value = false
+  destroyCourseMap()
+  selectedCoursePreview.value = null
+}
+
+/* When map emits an imported course, show banner and open write view */
+watch(() => props.importedCourse, (v) => {
+  if (!v) return
+  localImportedCourse.value = v
+  if (currentView.value !== 'write') openWriteForm()
+  if (!form.value.title) form.value.title = v.title || v.name || ''
+  nextTick(() => focusEditor(true))
+})
+
+function escapeHtml(str) {
+  if (!str) return ''
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function buildCourseHtml(course) {
+  const title = course.title || course.name || ''
+  const stops = Array.isArray(course.stops) ? course.stops : []
+  // 일반 텍스트 목록 HTML
+  let html = `<div class="imported-course"><h5>코스: ${escapeHtml(title)}</h5><ol>`
+  stops.forEach(s => {
+    const name = s.name || s.title || ''
+    const addr = s.description || s.addr || ''
+    const lat = s.lat ?? s.mapy ?? ''
+    const lng = s.lng ?? s.mapx ?? ''
+    let mapUrl = ''
+    if (lat !== null && lat !== '' && lng !== null && lng !== '') {
+      mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lat + ',' + lng)}`
+    }
+    html += `<li><strong>${escapeHtml(name)}</strong>${addr ? ' — ' + escapeHtml(addr) : ''}${mapUrl ? ` <a href="${mapUrl}" target="_blank" rel="noopener noreferrer">지도</a>` : ''}</li>`
+  })
+  html += `</ol></div>`
+
+  // 게시글 본문에 포함될 "임베디드 지도" DIV: data-stops에 JSON을 인코딩해서 넣음
+  try {
+    const stopsForData = stops.map(s => ({ name: s.name || s.title || '', lat: s.lat ?? s.mapy ?? null, lng: s.lng ?? s.mapx ?? null }))
+    const encoded = encodeURIComponent(JSON.stringify(stopsForData))
+    html += `<div class="embedded-course-map" data-stops="${encoded}" style="width:100%;height:260px;border-radius:6px;margin:8px 0;background:#f3f4f6;"></div>`
+  } catch (e) {
+    // 인코딩 문제 발생 시 무시
+    console.error('stops encode error', e)
+  }
+
+  html += `<hr/>`
+  return html
+}
+
+async function acceptImportCourse() {
+  if (!localImportedCourse.value) return
+  const html = buildCourseHtml(localImportedCourse.value)
+  await insertEditorHtml(html)
+  // 즉시 에디터 내부에서 임베디드 맵 렌더링
+  await nextTick()
+  initEmbeddedMaps(editorRef.value)
+  localImportedCourse.value = null
+}
+
+function cancelImportCourse() { localImportedCourse.value = null }
+
+async function insertSavedCourse(course) {
+  if (!course) return
+  const html = buildCourseHtml({
+    title: course.name || course.title || '',
+    stops: course.stops || []
+  })
+  if (!form.value.title && (course.name || course.title)) form.value.title = course.name || course.title
+  await insertEditorHtml(html)
+  // 즉시 에디터 내부에서 임베디드 맵 렌더링
+  await nextTick()
+  initEmbeddedMaps(editorRef.value)
+  closeCoursesModal()
+}
+
+// 게시글 내용(v-html)으로 렌더된 곳에 있는 .embedded-course-map 요소들을 찾아 Leaflet 지도 초기화
+function initEmbeddedMaps(root = document) {
+  const elems = (root && root.querySelectorAll) ? root.querySelectorAll('.embedded-course-map') : []
+  elems.forEach(el => {
+    if (el.dataset.lmapInitialized) return
+    const raw = el.dataset.stops || ''
+    let stops = []
+    try { stops = JSON.parse(decodeURIComponent(raw || '[]')) } catch (e) { stops = [] }
+    if (!stops.length) { el.dataset.lmapInitialized = '1'; return }
+
+    // 빈 div에 map 생성
+    try {
+      const map = L.map(el, { scrollWheelZoom: false, zoomControl: false })
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map)
+      const layer = L.layerGroup().addTo(map)
+      const latlngs = []
+      stops.forEach((s, idx) => {
+        const lat = Number(s.lat); const lng = Number(s.lng)
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          latlngs.push([lat, lng])
+          L.marker([lat, lng]).bindPopup(`${idx + 1}. ${s.name || ''}`).addTo(layer)
+        }
+      })
+      if (latlngs.length) {
+        L.polyline(latlngs, { color: '#2ca02c', weight: 4 }).addTo(layer)
+        map.fitBounds(L.polyline(latlngs).getBounds(), { padding: [12, 12] })
+      } else {
+        map.setView([37.5665, 126.9780], 11)
+      }
+      el.dataset.lmapInitialized = '1'
+    } catch (e) {
+      console.error('initEmbeddedMaps error', e)
+      el.dataset.lmapInitialized = '1'
+    }
+  })
+}
+
+// 자동 초기화: 상세뷰로 전환되면 detail-content 영역의 임베디드 맵 초기화
+watch(() => currentView.value, (v) => {
+  if (v === 'detail') {
+    nextTick(() => initEmbeddedMaps(document.querySelector('.detail-content')))
+  } else if (v === 'search') {
+    nextTick(() => initEmbeddedMaps(document.querySelectorAll('.search-content-preview')))
+  } else if (v === 'list') {
+    // 목록에 표시되는 미리보기 영역(있다면) 초기화
+    nextTick(() => initEmbeddedMaps())
+  }
+})
+// 초기 로드 시 혹은 포스트 로드 직후 초기화 (안정성)
+onMounted(() => { nextTick(() => initEmbeddedMaps()) })
+
+/* existing post/editor helpers */
 function getPostLink(post) {
   if (!post) return window.location.href
   const base = window.location.origin + window.location.pathname
   return `${base}?post=${post.id}`
 }
-
 async function sharePost(post) {
   if (!post) return
   const link = getPostLink(post)
-
   if (navigator.share) {
-    try {
-      await navigator.share({
-        title: post.title,
-        text: (post.nickname || '익명'),
-        url: link
-      })
-      return
-    } catch (err) {
-      // 사용자가 공유를 취소했거나 실패하면 복사로 폴백
-    }
+    try { await navigator.share({ title: post.title, text: (post.nickname || '익명'), url: link }); return }
+    catch (_) {}
   }
-
-  try {
-    await navigator.clipboard.writeText(link)
-    alert('게시글 링크가 클립보드에 복사되었습니다.')
-  } catch (err) {
-    const input = document.createElement('input')
-    input.value = link
-    document.body.appendChild(input)
-    input.select()
-    document.execCommand('copy')
-    document.body.removeChild(input)
+  try { await navigator.clipboard.writeText(link); alert('게시글 링크가 클립보드에 복사되었습니다.') }
+  catch (err) {
+    const input = document.createElement('input'); input.value = link; document.body.appendChild(input)
+    input.select(); document.execCommand('copy'); document.body.removeChild(input)
     alert('게시글 링크가 복사되었습니다.')
   }
 }
 
+/* rest of component logic (posts, editor, CRUD) */
 function openPostFromUrl() {
   try {
     const params = new URLSearchParams(window.location.search)
@@ -98,64 +289,38 @@ function openPostFromUrl() {
       const idNum = Number(pid)
       if (!Number.isNaN(idNum)) {
         const found = posts.value.find(p => p.id === idNum)
-        if (found) {
-          selectedPostId.value = idNum
-          currentView.value = 'detail'
-        }
+        if (found) { selectedPostId.value = idNum; currentView.value = 'detail' }
       }
     }
-  } catch (e) {
-    // noop
-  }
+  } catch (e) {}
 }
 
-onMounted(() => {
-  loadPosts()
-  openPostFromUrl()
-})
+onMounted(() => { loadPosts(); openPostFromUrl() })
 
 function matchesSearch(post, query) {
   const title = (post.title || '').toLowerCase()
   const content = getPlainText(post.content || '').toLowerCase()
   const nickname = (post.nickname || '익명').toLowerCase()
-
   if (searchScope.value === 'title') return title.includes(query)
   if (searchScope.value === 'nickname') return nickname.includes(query)
   if (searchScope.value === 'content') return content.includes(query)
-
   return title.includes(query) || content.includes(query)
 }
 
 const filteredPosts = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
-  const basePosts = showBookmarksOnly.value
-    ? posts.value.filter(post => post.bookmarked)
-    : posts.value
-
+  const basePosts = showBookmarksOnly.value ? posts.value.filter(post => post.bookmarked) : posts.value
   if (!query) return basePosts
   return basePosts.filter(post => matchesSearch(post, query))
 })
 
 const displayedPosts = computed(() => {
   const base = (showBookmarksOnly.value ? posts.value.filter(p => p.bookmarked) : posts.value)
-  const categoryFiltered = selectedCategoryFilter.value === 'all'
-    ? base
-    : base.filter(p => p.category === selectedCategoryFilter.value)
-
-  const filtered = searchQuery.value.trim()
-    ? categoryFiltered.filter(p => matchesSearch(p, searchQuery.value.trim().toLowerCase()))
-    : categoryFiltered
-
-  if (sortMode.value === 'likes') {
-  return [...filtered].sort((a, b) => (b.likes || 0) - (a.likes || 0))
-  }
-  if (sortMode.value === 'views') {
-    return [...filtered].sort((a, b) => (b.views || 0) - (a.views || 0))
-  }
-  if (sortMode.value === 'oldest') {
-    return [...filtered].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-  }
-  // default: latest
+  const categoryFiltered = selectedCategoryFilter.value === 'all' ? base : base.filter(p => p.category === selectedCategoryFilter.value)
+  const filtered = searchQuery.value.trim() ? categoryFiltered.filter(p => matchesSearch(p, searchQuery.value.trim().toLowerCase())) : categoryFiltered
+  if (sortMode.value === 'likes') return [...filtered].sort((a, b) => (b.likes || 0) - (a.likes || 0))
+  if (sortMode.value === 'views') return [...filtered].sort((a, b) => (b.views || 0) - (a.views || 0))
+  if (sortMode.value === 'oldest') return [...filtered].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
   return [...filtered].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 })
 
@@ -168,11 +333,7 @@ const searchedPosts = computed(() => {
 const selectedPost = computed(() => posts.value.find(post => post.id === selectedPostId.value))
 
 function getPlainText(content) {
-  return (content || '')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
+  return (content || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
 function loadPosts() {
@@ -194,34 +355,19 @@ function loadPosts() {
 }
 
 function savePosts() {
-  try {
-    localStorage.setItem('localhub-posts', JSON.stringify(posts.value))
-  } catch (error) {
-    console.error('게시글을 저장하지 못했습니다.', error)
-    alert('게시글을 저장하지 못했습니다. 이미지나 파일 용량을 확인해 주세요.')
-  }
+  try { localStorage.setItem('localhub-posts', JSON.stringify(posts.value)) }
+  catch (error) { console.error('게시글을 저장하지 못했습니다.', error); alert('게시글을 저장하지 못했습니다. 이미지나 파일 용량을 확인해 주세요.') }
 }
 
-function onEditorInput() {
-  syncEditorContent()
-  if (getPlainText(form.value.content)) errors.value.content = ''
-}
+function onEditorInput() { syncEditorContent(); if (getPlainText(form.value.content)) errors.value.content = '' }
 
-function setEditorContent(content = '') {
-  if (!editorRef.value) return
-  editorRef.value.innerHTML = content
-}
-
-function syncEditorContent() {
-  if (!editorRef.value) return
-  form.value.content = editorRef.value.innerHTML
-}
+function setEditorContent(content = '') { if (!editorRef.value) return; editorRef.value.innerHTML = content }
+function syncEditorContent() { if (!editorRef.value) return; form.value.content = editorRef.value.innerHTML }
 
 function focusEditor(moveCursorToEnd = false) {
   if (!editorRef.value) return
   editorRef.value.focus()
   if (!moveCursorToEnd) return
-
   const selection = window.getSelection()
   if (!selection) return
   const range = document.createRange()
@@ -232,330 +378,166 @@ function focusEditor(moveCursorToEnd = false) {
 }
 
 async function applyEditorCommand(command, value = null) {
-  await nextTick()
-  focusEditor()
-  document.execCommand(command, false, value === null ? undefined : value)
-  syncEditorContent()
+  await nextTick(); focusEditor(); document.execCommand(command, false, value === null ? undefined : value); syncEditorContent()
 }
 
-async function applyTextColor(color) {
-  await nextTick()
-  focusEditor()
-  document.execCommand('foreColor', false, color)
-  syncEditorContent()
-}
+async function applyTextColor(color) { await nextTick(); focusEditor(); document.execCommand('foreColor', false, color); syncEditorContent() }
 
-async function insertEditorHtml(html) {
-  await nextTick()
-  focusEditor(true)
-  document.execCommand('insertHTML', false, html)
-  syncEditorContent()
-}
+async function insertEditorHtml(html) { await nextTick(); focusEditor(true); document.execCommand('insertHTML', false, html); syncEditorContent() }
 
-function restoreSelection(range) {
-  if (!range) return
-  const selection = window.getSelection()
-  if (!selection) return
-  selection.removeAllRanges()
-  selection.addRange(range)
-}
+function restoreSelection(range) { if (!range) return; const selection = window.getSelection(); if (!selection) return; selection.removeAllRanges(); selection.addRange(range) }
 
 function openLinkModal() {
   const selection = window.getSelection()
   if (selection && selection.rangeCount > 0 && editorRef.value?.contains(selection.anchorNode)) {
-    savedRange.value = selection.getRangeAt(0).cloneRange()
-    linkText.value = selection.toString()
-  } else {
-    savedRange.value = null
-    linkText.value = ''
-  }
-  linkUrl.value = ''
-  showLinkModal.value = true
+    savedRange.value = selection.getRangeAt(0).cloneRange(); linkText.value = selection.toString()
+  } else { savedRange.value = null; linkText.value = '' }
+  linkUrl.value = ''; showLinkModal.value = true
 }
 
 async function insertLinkFromModal() {
   const url = linkUrl.value.trim()
-  if (!url) {
-    alert('링크 주소를 입력해 주세요.')
-    return
-  }
+  if (!url) { alert('링크 주소를 입력해 주세요.'); return }
   await nextTick()
   if (savedRange.value) restoreSelection(savedRange.value)
   else focusEditor(true)
-
   const selection = window.getSelection()
   const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null
   const selectedText = range ? range.toString() : ''
   const text = linkText.value.trim() || selectedText || url
-
   const linkElement = document.createElement('a')
-  linkElement.href = url
-  linkElement.target = '_blank'
-  linkElement.rel = 'noopener noreferrer'
-  linkElement.textContent = text
-
+  linkElement.href = url; linkElement.target = '_blank'; linkElement.rel = 'noopener noreferrer'; linkElement.textContent = text
   if (range && editorRef.value?.contains(range.commonAncestorContainer)) {
-    range.deleteContents()
-    range.insertNode(linkElement)
-    const newRange = document.createRange()
-    newRange.setStartAfter(linkElement)
-    newRange.collapse(true)
-    selection.removeAllRanges()
-    selection.addRange(newRange)
+    range.deleteContents(); range.insertNode(linkElement)
+    const newRange = document.createRange(); newRange.setStartAfter(linkElement); newRange.collapse(true)
+    selection.removeAllRanges(); selection.addRange(newRange)
   } else {
-    focusEditor(true)
-    document.execCommand('insertHTML', false, linkElement.outerHTML)
+    focusEditor(true); document.execCommand('insertHTML', false, linkElement.outerHTML)
   }
-
-  syncEditorContent()
-  cancelLinkModal()
+  syncEditorContent(); cancelLinkModal()
 }
 
-function cancelLinkModal() {
-  showLinkModal.value = false
-  linkUrl.value = ''
-  linkText.value = ''
-  savedRange.value = null
-}
+function cancelLinkModal() { showLinkModal.value = false; linkUrl.value = ''; linkText.value = ''; savedRange.value = null }
 
-function triggerImageUpload() {
-  imageInputRef.value?.click()
-}
-
-function triggerFileUpload() {
-  fileInputRef.value?.click()
-}
+function triggerImageUpload() { imageInputRef.value?.click() }
+function triggerFileUpload() { fileInputRef.value?.click() }
 
 function handleImageUpload(event) {
-  const file = event.target.files?.[0]
-  if (!file) return
+  const file = event.target.files?.[0]; if (!file) return
   const reader = new FileReader()
   reader.onload = async () => {
     const imageHtml = `<img src="${reader.result}" alt="${file.name}" style="display:block; max-width:100%; margin:8px 0; border-radius:6px;">`
     await insertEditorHtml(imageHtml)
   }
   reader.onerror = () => alert('이미지를 불러오지 못했습니다.')
-  reader.readAsDataURL(file)
-  event.target.value = ''
+  reader.readAsDataURL(file); event.target.value = ''
 }
 
 function handleFileUpload(event) {
-  const file = event.target.files?.[0]
-  if (!file) return
+  const file = event.target.files?.[0]; if (!file) return
   const reader = new FileReader()
   reader.onload = async () => {
     const attachmentHtml = `<a href="${reader.result}" download="${file.name}" style="display:inline-block; margin:6px 0; padding:8px 10px; border-radius:6px; background-color:#eef6ff; color:#4571ec; text-decoration:none;">📎 ${file.name}</a>`
     await insertEditorHtml(attachmentHtml)
   }
   reader.onerror = () => alert('파일을 불러오지 못했습니다.')
-  reader.readAsDataURL(file)
-  event.target.value = ''
+  reader.readAsDataURL(file); event.target.value = ''
 }
+
 
 function resetForm() {
   form.value = { title: '', content: '', password: '', nickname: '', category: categories[0] }
-  errors.value = { title: '', content: '', password: '' }
-  editingId.value = null
-  fontSizeValue.value = '3'
-  textColorValue.value = '#111827'
-  closeDeleteModal()
-  cancelLinkModal()
+  errors.value = { title: '', content: '', password: '' }; editingId.value = null
+  fontSizeValue.value = '3'; textColorValue.value = '#111827'; closeDeleteModal(); cancelLinkModal()
   nextTick(() => setEditorContent(''))
 }
 
 function openPostDetail(post) {
   const target = posts.value.find(p => p.id === post.id)
-  if (target) {
-    target.views = (target.views || 0) + 1
-    savePosts()
-  }
-  selectedPostId.value = post.id
-  currentView.value = 'detail'
-  closeDeleteModal()
+  if (target) { target.views = (target.views || 0) + 1; savePosts() }
+  selectedPostId.value = post.id; currentView.value = 'detail'; closeDeleteModal()
 }
 
-function closePostDetail() {
-  selectedPostId.value = null
-  currentView.value = 'list'
-  closeDeleteModal()
-}
+function closePostDetail() { selectedPostId.value = null; currentView.value = 'list'; closeDeleteModal() }
 
-function openWriteForm() {
-  resetForm()
-  currentView.value = 'write'
-}
+function openWriteForm() { resetForm(); currentView.value = 'write' }
+function openListView() { resetForm(); selectedPostId.value = null; currentView.value = 'list' }
 
-function openListView() {
-  resetForm()
-  selectedPostId.value = null
-  currentView.value = 'list'
-}
-
-function openSearchResults() {
-  if (!searchQuery.value.trim()) {
-    alert('검색어를 입력해 주세요.')
-    return
-  }
-  closeDeleteModal()
-  currentView.value = 'search'
-}
-
-function openSearchInput() {
-  closeDeleteModal()
-  currentView.value = 'list'
-}
+function openSearchResults() { if (!searchQuery.value.trim()) { alert('검색어를 입력해 주세요.'); return } closeDeleteModal(); currentView.value = 'search' }
+function openSearchInput() { closeDeleteModal(); currentView.value = 'list' }
 
 function formatDate(value) {
   if (!value) return ''
-  const d = new Date(value)
-  const pad = n => String(n).padStart(2, '0')
-
-  const yy = String(d.getFullYear()).slice(-2)       // '26'
-  const mm = pad(d.getMonth() + 1)                   // '07'
-  const dd = pad(d.getDate())                        // '15'
-  const hh = pad(d.getHours())                       // '13'
-  const min = pad(d.getMinutes())                    // '44'
-
+  const d = new Date(value); const pad = n => String(n).padStart(2, '0')
+  const yy = String(d.getFullYear()).slice(-2); const mm = pad(d.getMonth() + 1); const dd = pad(d.getDate())
+  const hh = pad(d.getHours()); const min = pad(d.getMinutes())
   return `${yy}.${mm}.${dd} ${hh}:${min}`
 }
 
 function submitPost() {
   syncEditorContent()
-  const title = form.value.title.trim()
-  const content = form.value.content || ''
-  const plainContent = getPlainText(content)
-  const password = form.value.password.trim()
+  const title = form.value.title.trim(); const content = form.value.content || ''
+  const plainContent = getPlainText(content); const password = form.value.password.trim()
   const nickname = form.value.nickname.trim() || '익명'
-
-  if (!title) {
-    errors.value.title = '제목을 입력해 주세요.'
-    nextTick(() => { const el = document.getElementById('post-title'); el?.focus() })
-    return
-  }
-  if (!plainContent) {
-    errors.value.content = '내용을 입력해 주세요.'
-    nextTick(() => editorRef.value?.focus())
-    return
-  }
-  if (!password) {
-    errors.value.password = '수정·삭제용 비밀번호를 입력해 주세요.'
-    nextTick(() => passwordInputRef.value?.focus())
-    return
-  }
+  if (!title) { errors.value.title = '제목을 입력해 주세요.'; nextTick(() => { const el = document.getElementById('post-title'); el?.focus() }); return }
+  if (!plainContent) { errors.value.content = '내용을 입력해 주세요.'; nextTick(() => editorRef.value?.focus()); return }
+  if (!password) { errors.value.password = '수정·삭제용 비밀번호를 입력해 주세요.'; nextTick(() => passwordInputRef.value?.focus()); return }
 
   if (editingId.value !== null) {
     const targetPost = posts.value.find(post => post.id === editingId.value)
     if (!targetPost) { alert('수정할 게시글을 찾을 수 없습니다.'); openListView(); return }
     if (targetPost.password !== password) { alert('비밀번호가 맞지 않습니다.'); return }
-    targetPost.title = title
-    targetPost.content = content.trim()
-    targetPost.nickname = nickname
-    targetPost.category = form.value.category || categories[0]
-    targetPost.updatedAt = new Date().toISOString()
+    targetPost.title = title; targetPost.content = content.trim(); targetPost.nickname = nickname
+    targetPost.category = form.value.category || categories[0]; targetPost.updatedAt = new Date().toISOString()
   } else {
     posts.value.unshift({
-      id: Date.now(),
-      title,
-      content: content.trim(),
-      password,
-      nickname,
-      category: form.value.category || categories[0],
-      createdAt: new Date().toISOString(),
-      bookmarked: false,
-      likes: 0,
-      liked: false,
-      views: 0
+      id: Date.now(), title, content: content.trim(), password, nickname,
+      category: form.value.category || categories[0], createdAt: new Date().toISOString(),
+      bookmarked: false, likes: 0, liked: false, views: 0
     })
   }
-
-  savePosts()
-  openListView()
+  savePosts(); openListView()
 }
 
-function likePost(post) {
-  if (!post || post.liked) return
-  post.likes = (post.likes || 0) + 1
-  post.liked = true
-  savePosts()
-}
+function likePost(post) { if (!post || post.liked) return; post.likes = (post.likes || 0) + 1; post.liked = true; savePosts() }
 
 function startEdit(post) {
   editingId.value = post.id
-  form.value = {
-    title: post.title,
-    content: post.content || '',
-    password: '',
-    nickname: post.nickname || '',
-    category: categories.includes(post.category) ? post.category : categories[0]
-  }
-  currentView.value = 'write'
-  closeDeleteModal()
-  nextTick(() => setEditorContent(post.content || ''))
+  form.value = { title: post.title, content: post.content || '', password: '', nickname: post.nickname || '', category: categories.includes(post.category) ? post.category : categories[0] }
+  currentView.value = 'write'; closeDeleteModal(); nextTick(() => setEditorContent(post.content || ''))
 }
 
-function openDeleteModal(post) {
-  deleteTargetId.value = post.id
-  deletePassword.value = ''
-  deleteError.value = ''
-}
+function openDeleteModal(post) { deleteTargetId.value = post.id; deletePassword.value = ''; deleteError.value = '' }
 
 function confirmDelete() {
   if (deleteTargetId.value === null) { deleteError.value = '삭제할 게시글을 찾을 수 없습니다.'; return }
   if (!deletePassword.value) { deleteError.value = '비밀번호를 입력해 주세요.'; return }
-
   const postIndex = posts.value.findIndex(post => post.id === deleteTargetId.value)
   if (postIndex === -1) { deleteError.value = '게시글을 찾을 수 없습니다.'; return }
-
   const post = posts.value[postIndex]
   if (post.password !== deletePassword.value) { deletePassword.value = ''; deleteError.value = '비밀번호가 일치하지 않습니다.'; return }
-
-  const deletedPostId = post.id
-  posts.value.splice(postIndex, 1)
-  savePosts()
-  closeDeleteModal()
-  if (selectedPostId.value === deletedPostId) closePostDetail()
+  const deletedPostId = post.id; posts.value.splice(postIndex, 1); savePosts(); closeDeleteModal(); if (selectedPostId.value === deletedPostId) closePostDetail()
 }
 
-function closeDeleteModal() {
-  deleteTargetId.value = null
-  deletePassword.value = ''
-  deleteError.value = ''
-}
-
-function toggleBookmark(post) {
-  post.bookmarked = !post.bookmarked
-  savePosts()
-}
+function closeDeleteModal() { deleteTargetId.value = null; deletePassword.value = ''; deleteError.value = '' }
+function toggleBookmark(post) { post.bookmarked = !post.bookmarked; savePosts() }
 </script>
 
 <template>
   <section class="card">
     <h3>서울Log ㅡ 우리 동네의 기록</h3>
 
-    <!-- 게시글 목록 화면 -->
+    <!-- LIST -->
     <div v-if="currentView === 'list'">
       <div class="search-bar">
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="검색어 입력"
-          @keyup.enter="openSearchResults"
-        >
-
+        <input v-model="searchQuery" type="text" placeholder="검색어 입력" @keyup.enter="openSearchResults">
         <select id="search-scope" class="custom-select search-scope-inline" v-model="searchScope">
           <option value="title">제목</option>
           <option value="nickname">닉네임</option>
           <option value="content">내용</option>
           <option value="all">제목 + 내용</option>
         </select>
-
-        <button
-          type="button"
-          class="btn-search"
-          @click="openSearchResults"
-        >
-          검색
-        </button>
+        <button type="button" class="btn-search" @click="openSearchResults">검색</button>
       </div>
 
       <div class="list-controls">
@@ -581,6 +563,7 @@ function toggleBookmark(post) {
           <input v-model="showBookmarksOnly" type="checkbox">
           북마크만 보기
         </label>
+
         <button type="button" class="btn-write" @click="openWriteForm"> ✏️ 글 작성</button>
       </div>
 
@@ -594,80 +577,50 @@ function toggleBookmark(post) {
           <div class="col col-likes">추천수</div>
         </div>
 
-        <div
-          v-for="post in displayedPosts"
-          :key="post.id"
-          class="post-table-row"
-          @click="openPostDetail(post)"
-          role="button"
-          tabindex="0"
-          @keyup.enter="openPostDetail(post)"
-        >
-          <div class="col col-category">
-            <span class="category-pill">{{ post.category }}</span>
-          </div>
-
-          <div class="col col-title">
-            <button type="button" class="post-title-btn" @click.stop="openPostDetail(post)">{{ post.title }}</button>
-          </div>
-
+        <div v-for="post in displayedPosts" :key="post.id" class="post-table-row" @click="openPostDetail(post)" role="button" tabindex="0" @keyup.enter="openPostDetail(post)">
+          <div class="col col-category"><span class="category-pill">{{ post.category }}</span></div>
+          <div class="col col-title"><button type="button" class="post-title-btn" @click.stop="openPostDetail(post)">{{ post.title }}</button></div>
           <div class="col col-author">{{ post.nickname || '익명' }}</div>
-
           <div class="col col-date">{{ formatDate(post.createdAt) }}</div>
-
           <div class="col col-views">{{ post.views || 0 }}</div>
-
-          <div class="col col-likes" aria-hidden="true">
-            <span class="likes-display">👍 {{ post.likes || 0 }}</span>
-          </div>
+          <div class="col col-likes" aria-hidden="true"><span class="likes-display">👍 {{ post.likes || 0 }}</span></div>
         </div>
       </div>
-      
 
       <p v-else class="empty-message">표시할 게시글이 없습니다.</p>
     </div>
 
-    <!-- 게시글 상세 화면 -->
+    <!-- DETAIL -->
     <div v-else-if="currentView === 'detail'" class="detail-view">
       <button type="button" class="btn-list" @click="closePostDetail">목록 보기</button>
 
       <div v-if="selectedPost" class="detail-post">
         <header class="detail-header">
           <h4 class="detail-title">{{ selectedPost.title }}</h4>
-
           <div class="detail-info-row">
             <div class="detail-meta-left">
               <span class="nickname">{{ selectedPost.nickname || '익명' }}</span>
               <span class="category">{{ selectedPost.category }}</span>
               <small>{{ formatDate(selectedPost.createdAt) }} · 조회 {{ selectedPost.views || 0 }}</small>
             </div>
-
             <div class="detail-meta-right">
               <button type="button" class="detail-share" @click.stop="sharePost(selectedPost)" aria-label="공유">🔗 공유</button>
               <button type="button" class="detail-bookmark" @click.stop="toggleBookmark(selectedPost)" :aria-label="selectedPost.bookmarked ? '북마크 해제' : '북마크 추가'">
-                <span v-if="selectedPost.bookmarked">★ 북마크</span>
-                <span v-else>☆ 북마크</span>
+                <span v-if="selectedPost.bookmarked">★ 북마크</span><span v-else>☆ 북마크</span>
               </button>
             </div>
           </div>
         </header>
 
         <div class="divider"></div>
-
         <div class="detail-content" v-html="selectedPost.content"></div>
-
         <div class="divider"></div>
 
-        <!-- 본문 아래로 추천 버튼 이동 -->
         <div class="detail-like-row">
-          <button type="button" class="detail-like-btn" :disabled="selectedPost.liked" @click="likePost(selectedPost)">
-            👍 추천 {{ selectedPost.likes || 0 }}
-          </button>
+          <button type="button" class="detail-like-btn" :disabled="selectedPost.liked" @click="likePost(selectedPost)">👍 추천 {{ selectedPost.likes || 0 }}</button>
         </div>
 
         <div class="divider"></div>
-
-        <!-- 수정/삭제 버튼은 오른쪽 하단에 위치 -->
         <div class="detail-stats-actions">
           <div class="detail-actions">
             <button type="button" @click="startEdit(selectedPost)" class="btn-small edit">수정</button>
@@ -677,10 +630,7 @@ function toggleBookmark(post) {
               <p>게시글 비밀번호를 입력해 주세요.</p>
               <p v-if="deleteError" class="error-text">{{ deleteError }}</p>
               <input v-model="deletePassword" type="password" placeholder="비밀번호" @keyup.enter="confirmDelete">
-              <div class="actions">
-                <button type="button" @click="confirmDelete">삭제</button>
-                <button type="button" @click="closeDeleteModal">취소</button>
-              </div>
+              <div class="actions"><button type="button" @click="confirmDelete">삭제</button><button type="button" @click="closeDeleteModal">취소</button></div>
             </div>
           </div>
         </div>
@@ -689,50 +639,30 @@ function toggleBookmark(post) {
       <p v-else class="empty-message">게시글을 찾을 수 없습니다.</p>
     </div>
 
-    <!-- 검색 결과 화면 -->
+    <!-- SEARCH -->
     <div v-else-if="currentView === 'search'" class="search-view">
       <button type="button" class="btn-list" @click="openSearchInput">목록 보기</button>
-
-      <div class="search-result-header">
-        <h4>검색 결과</h4>
-        <p>검색어: {{ searchQuery }}</p>
-      </div>
+      <div class="search-result-header"><h4>검색 결과</h4><p>검색어: {{ searchQuery }}</p></div>
 
       <div v-if="searchedPosts.length">
         <div v-for="post in searchedPosts" :key="post.id" class="post">
           <div class="post-header">
             <div>
               <button type="button" class="post-title-btn" @click="openPostDetail(post)">{{ post.title }}</button>
-
-              <div class="post-meta">
-                <span class="nickname">{{ post.nickname || '익명' }}</span>
-                <span class="category">{{ post.category }}</span>
-                <small>{{ formatDate(post.createdAt) }} · 조회 {{ post.views || 0 }} · 추천 {{ post.likes || 0 }}</small>
-              </div>
+              <div class="post-meta"><span class="nickname">{{ post.nickname || '익명' }}</span><span class="category">{{ post.category }}</span><small>{{ formatDate(post.createdAt) }} · 조회 {{ post.views || 0 }} · 추천 {{ post.likes || 0 }}</small></div>
             </div>
-
             <button type="button" class="bookmark-btn" :aria-label="post.bookmarked ? '북마크 해제' : '북마크 추가'" @click="toggleBookmark(post)">{{ post.bookmarked ? '★' : '☆' }}</button>
           </div>
 
           <div class="content-body search-content-preview" v-html="post.content"></div>
 
-          <div class="actions">
-            <button type="button" @click="openPostDetail(post)">자세히 보기</button>
-            <button type="button" @click="startEdit(post)">수정</button>
-            <button type="button" @click="openDeleteModal(post)">삭제</button>
-          </div>
+          <div class="actions"><button type="button" @click="openPostDetail(post)">자세히 보기</button><button type="button" @click="startEdit(post)">수정</button><button type="button" @click="openDeleteModal(post)">삭제</button></div>
 
           <div v-if="deleteTargetId === post.id" class="delete-password-form">
             <p>게시글 비밀번호를 입력해 주세요.</p>
-
             <p v-if="deleteError" class="error-text">{{ deleteError }}</p>
-
             <input v-model="deletePassword" type="password" placeholder="비밀번호" @keyup.enter="confirmDelete">
-
-            <div class="actions">
-              <button type="button" @click="confirmDelete">삭제</button>
-              <button type="button" @click="closeDeleteModal">취소</button>
-            </div>
+            <div class="actions"><button type="button" @click="confirmDelete">삭제</button><button type="button" @click="closeDeleteModal">취소</button></div>
           </div>
         </div>
       </div>
@@ -740,9 +670,57 @@ function toggleBookmark(post) {
       <p v-else class="empty-message">검색 결과가 없습니다.</p>
     </div>
 
-    <!-- 글 작성 및 수정 화면 -->
+    <!-- WRITE -->
     <div v-else class="write-view">
       <button type="button" class="btn-list" @click="openListView">목록 보기</button>
+
+      <!-- map-import banner -->
+      <div v-if="localImportedCourse" class="import-banner" style="margin-bottom:12px; padding:10px; border:1px solid #dbeafe; background:#eff6ff; border-radius:6px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+          <div><strong>지도에서 불러온 코스:</strong> <span>{{ localImportedCourse.title || localImportedCourse.name }}</span></div>
+          <div style="display:flex; gap:8px;">
+            <button type="button" @click="acceptImportCourse" style="background:#4caf50; color:#fff; padding:6px 10px; border-radius:6px; border:none;">삽입</button>
+            <button type="button" @click="cancelImportCourse" style="background:#ddd; padding:6px 10px; border-radius:6px; border:none;">취소</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- saved courses modal -->
+      <div v-if="coursesModalOpen" class="courses-modal" @mousedown.self="closeCoursesModal">
+        <div class="courses-dialog" role="dialog" @mousedown.stop>
+          <header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <strong>저장된 코스 선택</strong>
+            <button type="button" @click="closeCoursesModal" style="background:transparent;border:none;font-size:16px;cursor:pointer;">✕</button>
+          </header>
+
+          <div style="display:flex; gap:12px;">
+            <!-- LEFT: list -->
+            <div style="flex:1; min-width:280px; max-height:60vh; overflow:auto;">
+              <div v-if="savedCourses.length">
+                <div v-for="c in savedCourses" :key="c.id" class="course-item" style="display:flex;align-items:flex-start;justify-content:space-between;">
+                  <div style="flex:1; min-width:0;">
+                    <div class="course-name">{{ c.name || c.title }}</div>
+                    <div class="course-desc" v-if="c.description">{{ c.description }}</div>
+                    <div class="course-meta"><small>{{ c.stops?.length || 0 }} 정류장 · {{ c.createdAt ? (new Date(c.createdAt)).toLocaleString() : '' }}</small></div>
+                  </div>
+                  <div style="display:flex; flex-direction:column; gap:6px; margin-left:8px;">
+                    <button type="button" @click="selectCourseForPreview(c)" style="padding:6px 10px; border-radius:6px;">미리보기</button>
+                    <button type="button" @click="insertSavedCourse(c)" class="btn-insert">삽입</button>
+                  </div>
+                </div>
+              </div>
+              <p v-else class="empty-message">저장된 코스가 없습니다.</p>
+            </div>
+
+            <!-- RIGHT: map preview -->
+            <div style="width:420px; min-width:260px;">
+              <div v-if="selectedCoursePreview" style="margin-bottom:8px; font-weight:600;">미리보기: {{ selectedCoursePreview.name || selectedCoursePreview.title }}</div>
+              <div ref="courseMapRef" class="course-map" style="width:100%; height:320px; border-radius:6px; background:#f3f4f6;"></div>
+              <p v-if="!selectedCoursePreview" style="margin-top:8px; color:#666;">좌측에서 코스를 선택하면 경로가 표시됩니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <form class="form" @submit.prevent="submitPost">
         <div class="form-group">
@@ -795,6 +773,9 @@ function toggleBookmark(post) {
             <button type="button" title="이미지 삽입" @mousedown.prevent="triggerImageUpload">🖼️ 이미지</button>
             <button type="button" title="파일 첨부" @mousedown.prevent="triggerFileUpload">📁 파일</button>
 
+            <!-- 코스 불러오기 버튼 -->
+            <button type="button" title="코스 불러오기" @click="openCoursesModal">📍 코스 불러오기</button>
+
             <button type="button" title="서식 제거" @click="applyEditorCommand('removeFormat')">서식 제거</button>
 
             <input ref="imageInputRef" type="file" accept="image/*" class="hidden-file-input" @change="handleImageUpload">
@@ -818,7 +799,7 @@ function toggleBookmark(post) {
       </form>
     </div>
 
-    <!-- 링크 삽입 모달 -->
+    <!-- LINK MODAL -->
     <div v-if="showLinkModal" class="link-modal" @mousedown.self="cancelLinkModal">
       <div class="link-dialog" role="dialog" aria-modal="true" aria-labelledby="link-modal-title" @mousedown.stop>
         <h4 id="link-modal-title">링크 삽입</h4>
@@ -826,23 +807,14 @@ function toggleBookmark(post) {
         <input id="link-url" v-model="linkUrl" type="url" placeholder="https://example.com">
         <label for="link-text">표시할 글자</label>
         <input id="link-text" v-model="linkText" type="text" placeholder="입력하지 않으면 링크 주소가 표시됩니다" @keyup.enter="insertLinkFromModal">
-        <div class="actions">
-          <button type="button" @click="insertLinkFromModal">삽입</button>
-          <button type="button" @click="cancelLinkModal">취소</button>
-        </div>
+        <div class="actions"><button type="button" @click="insertLinkFromModal">삽입</button><button type="button" @click="cancelLinkModal">취소</button></div>
       </div>
     </div>
   </section>
 </template>
 
 <style scoped>
-.card {
-  margin: 10px 0;
-  padding: 20px;
-  border: 1px solid #dddddd;
-  border-radius: 8px;
-  background-color: #ffffff;
-}
+.card { margin: 10px 0; padding: 20px; border: 1px solid #dddddd; border-radius: 8px; background-color: #ffffff; }
 .card h3 { margin: 0 0 20px; color: #333333; }
 
 button, input, select { font-family: inherit; }
@@ -1168,6 +1140,23 @@ input:focus, select:focus {
   color: #666;
   pointer-events: none;
 }
+
+.imported-course h5 { margin:0 0 8px; font-size:15px; color:#0f172a; }
+.imported-course ol { margin:0 0 6px 18px; padding:0; color:#374151; }
+.imported-course li { margin:6px 0; line-height:1.4; }
+.imported-course a { color:#2563eb; text-decoration:underline; }
+
+.courses-modal { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(0,0,0,0.35); z-index:1200; }
+.courses-dialog { width:720px; max-width:100%; max-height:70vh; overflow:auto; background:#fff; border-radius:8px; padding:14px; box-shadow:0 8px 30px rgba(0,0,0,0.2); }
+.course-item { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:10px; border-bottom:1px solid #efefef; }
+.course-info { flex:1; min-width:0; }
+.course-name { font-weight:700; color:#0f172a; margin-bottom:4px; }
+.course-desc { color:#4b5563; margin-bottom:6px; }
+.course-actions { flex:0 0 auto; display:flex; gap:6px; align-items:center; }
+.course-map { width: 100%; height: 320px; border-radius: 6px; }
+.btn-insert { background:#4caf50; color:#fff; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; }
+.btn-insert:hover { background:#43a047; }
+
 
 /* responsive */
 @media (max-width: 820px) {
