@@ -635,10 +635,20 @@ function toggleBookmark(post) {
         <header class="detail-header">
           <h4 class="detail-title">{{ selectedPost.title }}</h4>
 
-          <div class="detail-meta">
-            <span class="nickname">{{ selectedPost.nickname || '익명' }}</span>
-            <span class="category">{{ selectedPost.category }}</span>
-            <small>{{ formatDate(selectedPost.createdAt) }} · 조회 {{ selectedPost.views || 0 }}</small>
+          <div class="detail-info-row">
+            <div class="detail-meta-left">
+              <span class="nickname">{{ selectedPost.nickname || '익명' }}</span>
+              <span class="category">{{ selectedPost.category }}</span>
+              <small>{{ formatDate(selectedPost.createdAt) }} · 조회 {{ selectedPost.views || 0 }}</small>
+            </div>
+
+            <div class="detail-meta-right">
+              <button type="button" class="detail-share" @click.stop="sharePost(selectedPost)" aria-label="공유">🔗 공유</button>
+              <button type="button" class="detail-bookmark" @click.stop="toggleBookmark(selectedPost)" :aria-label="selectedPost.bookmarked ? '북마크 해제' : '북마크 추가'">
+                <span v-if="selectedPost.bookmarked">★ 북마크</span>
+                <span v-else>☆ 북마크</span>
+              </button>
+            </div>
           </div>
         </header>
 
@@ -937,11 +947,46 @@ input:focus, select:focus {
   border-radius: 6px;
   background: #fafafa;
 }
+/* header 레이아웃: 제목은 위, info + 버튼은 한 줄로 (좌/우 정렬) */
 .detail-header {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+
+/* info 행: 좌우로 공간 배분 */
+.detail-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* 왼쪽 그룹 (작성자/카테고리/날짜/조회) */
+.detail-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #666;
+  font-size: 13px;
+}
+
+/* 오른쪽 그룹 (공유 / 북마크) */
+.detail-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* 버튼들을 작게 보이게 조정 */
+.detail-meta-right .detail-share,
+.detail-meta-right .detail-bookmark {
+  padding: 6px 8px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+
 .detail-title { margin: 0; font-size: 20px; color: #222; }
 .detail-meta { color: #666; font-size: 13px; display:flex; gap:8px; align-items:center; }
 .divider { height: 1px; background: #ececec; margin: 14px 0; }
@@ -967,8 +1012,8 @@ input:focus, select:focus {
 .detail-title-area .category {font-size: 12px; color: #666; font-weight: 600; margin-left: 8px;}
 .detail-actions-inline { display:inline-flex; gap:10px; align-items:center; }
 .detail-share, .detail-bookmark { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid transparent; border-radius:6px; background:transparent; font-size:15px; cursor:pointer; color:#111827; }
-.detail-share { color:#3b82f6; border-color:rgba(59,130,246,0.08); background:rgba(59,130,246,0.03); }
-.detail-bookmark { color:#f4b400; border-color:rgba(244,180,0,0.08); background:rgba(244,180,0,0.03); }
+.detail-share { color:#858585; border-color:rgba(255, 255, 255, 0.08); background:rgba(176, 176, 177, 0.247); }
+.detail-bookmark { color:#ffbb00; border-color:rgba(236, 164, 9, 0.08); background:rgba(255, 234, 177, 0.479); }
 .detail-like-wrapper { margin-top:18px; display:flex; justify-content:center; }
 .detail-like-btn { display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:8px; border:1px solid #dbdcdd8a; background:#ffffff96; color:#111827; font-weight:700; font-size:15px; cursor:pointer; transition:transform .12s, box-shadow .12s; }
 .detail-like-btn:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,0.08); }
@@ -1136,6 +1181,12 @@ input:focus, select:focus {
 @media (max-width: 600px) {
   .detail-stats-actions { flex-direction: column; align-items: stretch; gap:8px; }
   .detail-actions { display:flex; gap:8px; justify-content:flex-end; }
+}
+
+/* 반응형: 좁을 때 버튼/정보 줄이 흐트러지지 않게 조정 */
+@media (max-width: 600px) {
+  .detail-info-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .detail-meta-right { margin-left: 0; }
 }
 
 @media (max-width: 600px) {
