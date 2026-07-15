@@ -120,3 +120,9 @@ textarea {
     overflow-x: auto;
   }
 }
+
+/* 기존 파일 내용 유지 - 아래만 추가 */
+.place-chip.course {
+  border-style: dashed;
+  background: linear-gradient(180deg, #f0fff4, #ffffff);
+}
