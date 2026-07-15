@@ -31,6 +31,7 @@ const selectedTypes = ref(new Set(typeKeys))
 const routeStops = ref([])
 const selectedCategory = ref('전체')
 const searchQuery = ref('')
+const showRouteOnly = ref(false)
 
 function parseCoord(value) {
   const num = Number(value)
@@ -61,20 +62,29 @@ function selectAllTypes() {
   updateMarkers()
 }
 
+function toggleRouteOnly() {
+  showRouteOnly.value = !showRouteOnly.value
+  updateMarkers()
+}
+
 function normalizeDisplayItem(item, index) {
   if (typeof item === 'string') {
-    return { id: `string-${index}`, name: item, description: '', type: null }
+    return { id: `string-${index}`, name: item, description: '', type: null, lat: null, lng: null }
   }
 
   const name = item?.name || item?.title || item?.place || '장소'
   const description = item?.description || item?.addr1 || item?.addr2 || ''
   const type = normalizeType(item?.type ?? item?.contentType ?? item?.contentTypeId ?? item?.contenttype ?? null)
+  const lat = parseCoord(item?.lat ?? item?.mapy ?? item?.latitude ?? null)
+  const lng = parseCoord(item?.lng ?? item?.mapx ?? item?.longitude ?? null)
 
   return {
     id: item?.id ?? item?.contentid ?? `${name}-${index}`,
     name,
     description,
-    type
+    type,
+    lat,
+    lng
   }
 }
 
@@ -161,19 +171,72 @@ function initMap() {
   setTimeout(() => map.invalidateSize && map.invalidateSize(), 200)
 }
 
-function createMarker(point) {
-  return L.circleMarker([point.lat, point.lng], {
-    radius: 8,
-    fillColor: getColorForType(point.type),
+function createMarker(point, index = null, routeMode = false) {
+  const marker = L.circleMarker([point.lat, point.lng], {
+    radius: routeMode ? 10 : 8,
+    fillColor: routeMode ? '#0f766e' : getColorForType(point.type),
     color: '#222',
     weight: 1,
     opacity: 1,
-    fillOpacity: 0.85
+    fillOpacity: 0.95
   }).bindPopup(`
     <strong>${point.name}</strong><br/>
     ${point.type ? `<em>${point.type}</em><br/>` : ''}
     ${point.description || ''}
   `)
+
+  if (routeMode && index !== null) {
+    marker.bindTooltip(`${index + 1}. ${point.name}`, {
+      permanent: false,
+      sticky: true
+    })
+  }
+
+  return marker
+}
+
+function createRoutePolyline(routePoints) {
+  if (routePoints.length < 2) return null
+
+  const latlngs = routePoints.map(point => [point.lat, point.lng])
+
+  const polyline = L.polyline(latlngs, {
+    color: '#2563eb',
+    weight: 4,
+    opacity: 0.9,
+    lineCap: 'round',
+    lineJoin: 'round'
+  })
+
+  const arrowLayers = []
+  for (let i = 0; i < latlngs.length - 1; i++) {
+    const [startLat, startLng] = latlngs[i]
+    const [endLat, endLng] = latlngs[i + 1]
+
+    const midLat = (startLat + endLat) / 2
+    const midLng = (startLng + endLng) / 2
+
+    const dx = endLat - startLat
+    const dy = endLng - startLng
+    const length = Math.hypot(dx, dy) || 0.0001
+
+    const arrowLength = Math.max(0.00025, length * 0.08)
+
+    const arrowStartLat = midLat - (dx / length) * (arrowLength / 2)
+    const arrowStartLng = midLng - (dy / length) * (arrowLength / 2)
+    const arrowEndLat = midLat + (dx / length) * (arrowLength / 2)
+    const arrowEndLng = midLng + (dy / length) * (arrowLength / 2)
+
+    arrowLayers.push(
+      L.polyline([[arrowStartLat, arrowStartLng], [arrowEndLat, arrowEndLng]], {
+        color: '#0f766e',
+        weight: 3,
+        opacity: 1
+      })
+    )
+  }
+
+  return { polyline, arrowLayers }
 }
 
 function updateMarkers() {
@@ -197,10 +260,38 @@ function updateMarkers() {
   hasCoords.value = allPoints.length > 0
   if (!hasCoords.value) return
 
-  const visiblePoints = allPoints.filter(p => selectedTypes.value.has(p.type))
-  visiblePoints.forEach(point => markersLayer.addLayer(createMarker(point)))
+  const routePoints = routeStops.value
+    .map(stop => {
+      const lat = parseCoord(stop.lat)
+      const lng = parseCoord(stop.lng)
+      const type = normalizeType(stop.type)
+      return lat !== null && lng !== null ? { ...stop, lat, lng, type } : null
+    })
+    .filter(Boolean)
 
-  if (!boundsInitialized && visiblePoints.length > 0) {
+  if (showRouteOnly.value) {
+    if (routePoints.length > 1) {
+      const routeLine = createRoutePolyline(routePoints)
+      if (routeLine) {
+        markersLayer.addLayer(routeLine.polyline)
+        routeLine.arrowLayers.forEach(layer => markersLayer.addLayer(layer))
+      }
+    }
+
+    routePoints.forEach((point, index) => {
+      markersLayer.addLayer(createMarker(point, index, true))
+    })
+  } else {
+    const visiblePoints = allPoints.filter(p => selectedTypes.value.has(p.type))
+    visiblePoints.forEach(point => markersLayer.addLayer(createMarker(point)))
+
+    if (!boundsInitialized && visiblePoints.length > 0) {
+      map.setView([37.5665, 126.9780], 11)
+      boundsInitialized = true
+    }
+  }
+
+  if (!boundsInitialized && routePoints.length > 0 && showRouteOnly.value) {
     map.setView([37.5665, 126.9780], 11)
     boundsInitialized = true
   }
@@ -246,7 +337,7 @@ watch(
         <div class="type-filter-bar" v-if="hasCoords">
           <button
             class="type-button all"
-            :class="{ active: selectedTypes.size === typeKeys.length }"
+            :class="{ active: selectedTypes.size === typeKeys.length && !showRouteOnly }"
             @click="selectAllTypes"
           >
             전체
@@ -256,15 +347,23 @@ watch(
             v-for="type in typeKeys"
             :key="type"
             class="type-button"
-            :class="{ active: selectedTypes.has(type) }"
+            :class="{ active: selectedTypes.has(type) && !showRouteOnly }"
             :style="{
               borderColor: typeColors[type],
-              background: selectedTypes.has(type) ? typeColors[type] : '#fff',
-              color: selectedTypes.has(type) ? '#fff' : '#222'
+              background: selectedTypes.has(type) && !showRouteOnly ? typeColors[type] : '#fff',
+              color: selectedTypes.has(type) && !showRouteOnly ? '#fff' : '#222'
             }"
             @click="toggleType(type)"
           >
             {{ type }}
+          </button>
+
+          <button
+            class="type-button route-toggle"
+            :class="{ active: showRouteOnly }"
+            @click="toggleRouteOnly"
+          >
+            내 경로
           </button>
         </div>
 
@@ -429,6 +528,12 @@ watch(
 
 .type-button.all {
   font-weight: 700;
+}
+
+.type-button.route-toggle {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #93c5fd;
 }
 
 .route-planner {
