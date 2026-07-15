@@ -69,7 +69,7 @@ function initMap() {
   if (!mapRef.value) return
   if (map) map.remove()
 
-  map = L.map(mapRef.value, { preferCanvas: true }).setView([37.5665, 126.9780], 12)
+  map = L.map(mapRef.value, { preferCanvas: true }).setView([37.5665, 126.9780], 11)
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map)
@@ -120,14 +120,7 @@ function updateMarkers() {
   visiblePoints.forEach(point => markersLayer.addLayer(createMarker(point)))
 
   if (!boundsInitialized && visiblePoints.length > 0) {
-    if (visiblePoints.length === 1) {
-      map.setView([visiblePoints[0].lat, visiblePoints[0].lng], 14)
-    } else {
-      const group = L.featureGroup(markersLayer.getLayers())
-      if (group.getBounds().isValid()) {
-        map.fitBounds(group.getBounds().pad(0.2))
-      }
-    }
+    map.setView([37.5665, 126.9780], 11)
     boundsInitialized = true
   }
 }
