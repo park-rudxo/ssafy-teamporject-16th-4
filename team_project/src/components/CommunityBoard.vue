@@ -26,6 +26,12 @@ const deleteError = ref('')
 const editorRef = ref(null)
 const imageInputRef = ref(null)
 const fileInputRef = ref(null)
+const passwordInputRef = ref(null)
+const errors = ref({
+  title: '',
+  content: '',
+  password: ''
+})
 
 const fontSizeValue = ref('3')
 const textColorValue = ref('#111827')
@@ -56,11 +62,8 @@ function matchesSearch(post, query) {
     return content.includes(query)
   }
 
-  return (
-    title.includes(query) ||
-    content.includes(query) ||
-    nickname.includes(query)
-  )
+  // 'all' 은 이제 제목 + 내용만 검색합니다.
+  return title.includes(query) || content.includes(query)
 }
 
 const filteredPosts = computed(() => {
@@ -125,6 +128,13 @@ function savePosts() {
   } catch (error) {
     console.error('게시글을 저장하지 못했습니다.', error)
     alert('게시글을 저장하지 못했습니다. 이미지나 파일 용량을 확인해 주세요.')
+  }
+}
+
+function onEditorInput() {
+  syncEditorContent()
+  if (getPlainText(form.value.content)) {
+    errors.value.content = ''
   }
 }
 
@@ -455,17 +465,27 @@ function submitPost() {
   const nickname = form.value.nickname.trim() || '익명'
 
   if (!title) {
-    alert('제목을 입력해 주세요.')
+    errors.value.title = '제목을 입력해 주세요.'
+    nextTick(() => {
+      const el = document.getElementById('post-title')
+      el?.focus()
+    })
     return
   }
 
   if (!plainContent) {
-    alert('내용을 입력해 주세요.')
+    errors.value.content = '내용을 입력해 주세요.'
+    nextTick(() => {
+      editorRef.value?.focus()
+    })
     return
   }
 
   if (!password) {
-    alert('수정·삭제용 비밀번호를 입력해 주세요.')
+    errors.value.password = '수정·삭제용 비밀번호를 입력해 주세요.'
+    nextTick(() => {
+      passwordInputRef.value?.focus()
+    })
     return
   }
 
@@ -613,7 +633,7 @@ function toggleBookmark(post) {
           <option value="title">제목</option>
           <option value="nickname">닉네임</option>
           <option value="content">내용</option>
-          <option value="all">제목 + 내용 + 닉네임</option>
+          <option value="all">제목 + 내용</option>
         </select>
       </div>
 
@@ -953,13 +973,14 @@ function toggleBookmark(post) {
       >
         <div class="form-group">
           <label for="post-title">제목</label>
+          <input id="post-title"
+                 v-model="form.title" 
+                 type="text" 
+                 placeholder="제목을 입력하세요" 
+                 @input="errors.title = ''" 
+                 />
 
-          <input
-            id="post-title"
-            v-model="form.title"
-            type="text"
-            placeholder="제목을 입력하세요"
-          >
+          <p v-if="errors.title" class="field-error">{{ errors.title }}</p>
         </div>
 
         <div class="form-group">
@@ -1132,14 +1153,13 @@ function toggleBookmark(post) {
             >
           </div>
 
-          <div
-            ref="editorRef"
-            contenteditable="true"
-            class="editor-area"
-            data-placeholder="게시글 내용을 입력하세요"
-            @input="syncEditorContent"
-            @blur="syncEditorContent"
-          ></div>
+          <div ref="editorRef"
+              contenteditable="true"
+              :class="['editor-area', { 'input-error': errors.content }]"
+              data-placeholder="게시글 내용을 입력하세요"
+              @input="onEditorInput"
+              @blur="syncEditorContent"></div>
+          <p v-if="errors.content" class="field-error">{{ errors.content }}</p>
         </div>
 
         <div class="form-group">
@@ -1147,12 +1167,15 @@ function toggleBookmark(post) {
             수정·삭제용 비밀번호
           </label>
 
-          <input
+          <input 
             id="post-password"
-            v-model="form.password"
-            type="password"
-            placeholder="게시글 수정과 삭제에 사용할 비밀번호"
-          >
+            ref="passwordInputRef" 
+            v-model="form.password" 
+            type="password" placeholder="..." 
+            @input="errors.password = ''" 
+          />
+          <p v-if="errors.password" class="field-error">{{ errors.password }}</p>
+
         </div>
 
         <div class="actions form-actions">
@@ -1707,6 +1730,18 @@ select:focus {
   text-align: center;
 }
 
+.input-error {
+  border-color: #f44336 !important;
+  box-shadow: 0 0 0 3px rgba(244,67,54,0.08);
+}
+
+.field-error {
+  margin: 4px 0 0;
+  color: #b91c1c;
+  font-size: 15px;
+  font-weight: 700;
+}
+
 @media (max-width: 600px) {
   .card {
     padding: 14px;
@@ -1737,5 +1772,6 @@ select:focus {
   .detail-title-area {
     align-items: flex-start;
   }
+
 }
 </style>
