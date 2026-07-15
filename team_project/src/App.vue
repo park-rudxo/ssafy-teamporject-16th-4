@@ -4,7 +4,6 @@ import RegionOverview from './components/RegionOverview.vue'
 import CommunityBoard from './components/CommunityBoard.vue'
 import ChatbotPanel from './components/ChatbotPanel.vue'
 
-// 모든 JSON을 로드하고 서울 폴더만 사용
 const modules = import.meta.glob('./data/**/*.json', { eager: true })
 
 function asNumber(v) {
@@ -26,13 +25,10 @@ function normalizeFromItem(item, fallbackType = null) {
   const itemType = item.contentType ?? item.contenttype ?? item.contentTypeId ?? item.contenttypeId ?? fallbackType
   const type = itemType === null ? null : String(itemType)
 
-  return { name, lat, lng, description, image, id, type }
+  return { name, lat, lng, description, image, id, type, raw: item }
 }
 
 const seoul = { name: '서울', description: '서울 권역 통합 데이터', highlights: [] }
-
-console.log('DEBUG: glob keys count:', Object.keys(modules).length)
-console.log('DEBUG: glob keys sample:', Object.keys(modules).slice(0, 20))
 
 for (const key in modules) {
   if (!key.includes('/서울/')) continue
@@ -56,15 +52,20 @@ for (const key in modules) {
 
   const normalized = entries
     .map(e => {
+      // 여행코스 항목일 경우 stops 배열을 정규화해서 코스 객체로 보존
+      if (e && Array.isArray(e.stops) && e.stops.length) {
+        const course = normalizeFromItem(e, fallbackType) || {}
+        course.isCourse = true
+        course.stops = e.stops
+          .map(s => normalizeFromItem(s, fallbackType))
+          .filter(Boolean)
+        return course
+      }
+
       if (typeof e === 'string') return { name: e, lat: null, lng: null, description: '' }
       return normalizeFromItem(e, fallbackType)
     })
     .filter(Boolean)
-
-  const total = normalized.length
-  const withCoords = normalized.filter(h => h?.lat !== null && h?.lng !== null).length
-  console.log(`DEBUG: module ${key} — total: ${total}, withCoords: ${withCoords}`)
-  console.log('DEBUG: sample normalized (first 5):', normalized.slice(0, 5))
 
   normalized.forEach(h => {
     if (h && h.name) seoul.highlights.push(h)
@@ -79,12 +80,8 @@ seoul.highlights = seoul.highlights.filter(h => {
   return true
 })
 
-console.log('DEBUG: seoul.highlights total:', seoul.highlights.length)
-console.log('DEBUG: seoul.highlights with coords:', seoul.highlights.filter(h => h.lat !== null && h.lng !== null).length)
-console.log('DEBUG: seoul.highlights sample (first 10):', seoul.highlights.slice(0, 10))
-
 const currentRegion = ref(seoul)
-const activeTab = ref('map') // 'map' | 'community' | 'chat'
+const activeTab = ref('map')
 </script>
 
 <template>
@@ -103,7 +100,9 @@ const activeTab = ref('map') // 'map' | 'community' | 'chat'
     </nav>
 
     <main class="main-area">
-      <RegionOverview v-if="activeTab === 'map'" :region="currentRegion" />
+      <div class="map-tab-shell" v-if="activeTab === 'map'">
+        <RegionOverview :key="currentRegion.name" :region="currentRegion" />
+      </div>
       <CommunityBoard v-else-if="activeTab === 'community'" />
       <ChatbotPanel v-else />
     </main>

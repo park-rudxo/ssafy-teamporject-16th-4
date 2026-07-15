@@ -29,7 +29,37 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "126512",
+          "title": "광화문",
+          "mapx": "126.9768042386",
+          "mapy": "37.5760725520",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1604652",
+          "title": "명성황후 조난지",
+          "mapx": "126.9767375783",
+          "mapy": "37.5760836609",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126533",
+          "title": "청와대 앞길",
+          "mapx": "126.973751980892",
+          "mapy": "37.5834864376289",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "2608977",
+          "title": "국립민속박물관",
+          "mapx": "126.978889955558",
+          "mapy": "37.5816745310255",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -56,7 +86,30 @@
       "lDongSignguCd": "680",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0117",
-      "lclsSystm3": "C01170001"
+      "lclsSystm3": "C01170001",
+      "stops": [
+        {
+          "contentid": "126525",
+          "title": "서울 선릉과 정릉 [유네스코 세계문화유산]",
+          "mapx": "127.0471803291",
+          "mapy": "37.5074206801",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "229901",
+          "title": "한국종합무역센터(코엑스)",
+          "mapx": "127.0591541159",
+          "mapy": "37.5117453937",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126999",
+          "title": "이태원 관광특구",
+          "mapx": "126.99065548030292",
+          "mapy": "37.53392419699384",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -83,7 +136,30 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0113",
-      "lclsSystm3": "C01130001"
+      "lclsSystm3": "C01130001",
+      "stops": [
+        {
+          "contentid": "127942",
+          "title": "사직공원",
+          "mapx": "126.9687216489",
+          "mapy": "37.5758446558",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126508",
+          "title": "경복궁",
+          "mapx": "126.97672186606306",
+          "mapy": "37.576030700049394",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126510",
+          "title": "종묘",
+          "mapx": "126.9951311023",
+          "mapy": "37.5709802173",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -110,7 +186,23 @@
       "lDongSignguCd": "140",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0112",
-      "lclsSystm3": "C01120001"
+      "lclsSystm3": "C01120001",
+      "stops": [
+        {
+          "contentid": "129507",
+          "title": "청계광장",
+          "mapx": "127.0050743200",
+          "mapy": "37.5696470253",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "128776",
+          "title": "남산 케이블카",
+          "mapx": "126.9841041137",
+          "mapy": "37.5569971220",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -137,7 +229,37 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "126512",
+          "title": "광화문",
+          "mapx": "126.9768042386",
+          "mapy": "37.5760725520",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "129507",
+          "title": "청계천",
+          "mapx": "127.0050743200",
+          "mapy": "37.5696470253",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "132180",
+          "title": "남대문시장",
+          "mapx": "126.9776796357",
+          "mapy": "37.5592467455",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126535",
+          "title": "남산서울타워",
+          "mapx": "126.987882083295",
+          "mapy": "37.5510545366352",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -164,7 +286,44 @@
       "lDongSignguCd": "140",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "128162",
+          "title": "숭례문",
+          "mapx": "126.9752992762",
+          "mapy": "37.5599855058",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "250330",
+          "title": "서울 약현성당",
+          "mapx": "126.9674194623",
+          "mapy": "37.5591437954",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1605977",
+          "title": "서소문근린공원",
+          "mapx": "126.9693637143",
+          "mapy": "37.5596854342",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126509",
+          "title": "덕수궁",
+          "mapx": "126.97657463444833",
+          "mapy": "37.565054919430565",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1017547",
+          "title": "중명전",
+          "mapx": "126.9725521115",
+          "mapy": "37.5667846662",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -191,7 +350,37 @@
       "lDongSignguCd": "290",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0112",
-      "lclsSystm3": "C01120001"
+      "lclsSystm3": "C01120001",
+      "stops": [
+        {
+          "contentid": "128611",
+          "title": "서울숲",
+          "mapx": "127.0417984460",
+          "mapy": "37.5430715815",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1874105",
+          "title": "응봉산(서울)",
+          "mapx": "127.0298",
+          "mapy": "37.5482",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "130958",
+          "title": "한양대학교박물관",
+          "mapx": "127.0429292967",
+          "mapy": "37.5574647913",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "132220",
+          "title": "서울 약령시장",
+          "mapx": "127.037026488849",
+          "mapy": "37.5790881196833",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -218,7 +407,51 @@
       "lDongSignguCd": "290",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "1036894",
+          "title": "북악팔각정~말바위쉼터",
+          "mapx": "126.980550789268",
+          "mapy": "37.6019731946347",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1019041",
+          "title": "와룡공원",
+          "mapx": "126.9901581479",
+          "mapy": "37.5912265856",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "252529",
+          "title": "서울 중앙고등학교 본관·동관·서관",
+          "mapx": "126.9868503170",
+          "mapy": "37.5841440162",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "127642",
+          "title": "창덕궁과 후원 [유네스코 세계문화유산]",
+          "mapx": "126.9902306310",
+          "mapy": "37.5776507425",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126511",
+          "title": "창경궁",
+          "mapx": "126.9964634775",
+          "mapy": "37.5789336838",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "129838",
+          "title": "성균관대학교 박물관",
+          "mapx": "126.9969632609",
+          "mapy": "37.5849607702",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -245,7 +478,37 @@
       "lDongSignguCd": "470",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0112",
-      "lclsSystm3": "C01120001"
+      "lclsSystm3": "C01120001",
+      "stops": [
+        {
+          "contentid": "1265735",
+          "title": "서서울호수공원",
+          "mapx": "126.83008689499809",
+          "mapy": "37.52743189796755",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "611883",
+          "title": "작동 오리촌",
+          "mapx": "126.8138124817",
+          "mapy": "37.5151517201",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "407030",
+          "title": "부천식물원",
+          "mapx": "126.8156736899",
+          "mapy": "37.5056250825",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "814255",
+          "title": "온수공원",
+          "mapx": "126.8397382631",
+          "mapy": "37.5020481486",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -272,7 +535,37 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0113",
-      "lclsSystm3": "C01130001"
+      "lclsSystm3": "C01130001",
+      "stops": [
+        {
+          "contentid": "264353",
+          "title": "인사동",
+          "mapx": "126.9835230884",
+          "mapy": "37.5754616322",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "128144",
+          "title": "조계사",
+          "mapx": "126.9827509785",
+          "mapy": "37.5739784579",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126508",
+          "title": "경복궁",
+          "mapx": "126.97672186606306",
+          "mapy": "37.576030700049394",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1367251",
+          "title": "부암동",
+          "mapx": "126.9640854894",
+          "mapy": "37.5924870824",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -299,7 +592,37 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "1906334",
+          "title": "동대문역사문화공원",
+          "mapx": "127.0095709797",
+          "mapy": "37.5661076320",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1939691",
+          "title": "한양도성박물관",
+          "mapx": "127.00851288421596",
+          "mapy": "37.57285717668249",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "129501",
+          "title": "낙산공원",
+          "mapx": "127.006496092905",
+          "mapy": "37.5805179476871",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "2470006",
+          "title": "동대문디자인플라자(DDP)",
+          "mapx": "127.0095709797",
+          "mapy": "37.5661076320",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -326,7 +649,44 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "252547",
+          "title": "창의문(자하문)",
+          "mapx": "126.9665102630",
+          "mapy": "37.5926565508",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1367251",
+          "title": "부암동",
+          "mapx": "126.9640854894",
+          "mapy": "37.5924870824",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1605948",
+          "title": "대원군별장",
+          "mapx": "126.9627744300",
+          "mapy": "37.5948701151",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "129506",
+          "title": "홍지문 및 탕춘대성",
+          "mapx": "126.9586135629",
+          "mapy": "37.5996528175",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "809372",
+          "title": "백사실계곡",
+          "mapx": "126.966332776788",
+          "mapy": "37.6004286814137",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -353,7 +713,37 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "126512",
+          "title": "광화문",
+          "mapx": "126.9768042386",
+          "mapy": "37.5760725520",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126537",
+          "title": "북촌한옥마을",
+          "mapx": "126.9867060298",
+          "mapy": "37.5790529392",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "837020",
+          "title": "점심식사(황생가칼국수)",
+          "mapx": "126.98062085353",
+          "mapy": "37.5800369825294",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1019294",
+          "title": "정독도서관",
+          "mapx": "126.9832368815",
+          "mapy": "37.5797611278",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -380,7 +770,51 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "130903",
+          "title": "북촌문화센터",
+          "mapx": "126.9867060298",
+          "mapy": "37.5790529392",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1100498",
+          "title": "북촌 8경",
+          "mapx": "126.9862761098",
+          "mapy": "37.5790883270",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "250147",
+          "title": "삼청동길",
+          "mapx": "126.98280518277133",
+          "mapy": "37.58887435662737",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126488",
+          "title": "삼청공원",
+          "mapx": "126.9828199930",
+          "mapy": "37.5889267212",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "264353",
+          "title": "인사동길",
+          "mapx": "126.9835230884",
+          "mapy": "37.5754616322",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "128553",
+          "title": "쌈지길",
+          "mapx": "126.9848674428",
+          "mapy": "37.5743062352",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -407,7 +841,30 @@
       "lDongSignguCd": "590",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "126521",
+          "title": "국립서울현충원",
+          "mapx": "126.973234928244",
+          "mapy": "37.5013020026689",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126523",
+          "title": "사육신공원",
+          "mapx": "126.9493751733",
+          "mapy": "37.5135098862",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "132216",
+          "title": "노량진 수산시장",
+          "mapx": "126.9368207234",
+          "mapy": "37.5148539488",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -434,7 +891,37 @@
       "lDongSignguCd": "290",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0112",
-      "lclsSystm3": "C01120001"
+      "lclsSystm3": "C01120001",
+      "stops": [
+        {
+          "contentid": "130511",
+          "title": "간송미술관",
+          "mapx": "126.9973796423",
+          "mapy": "37.5936764304",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126498",
+          "title": "롯데월드",
+          "mapx": "127.0978836077",
+          "mapy": "37.5112974856",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "135679",
+          "title": "점심식사(남산골산채집)",
+          "mapx": "126.9853479701",
+          "mapy": "37.5568128981",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126535",
+          "title": "남산서울타워",
+          "mapx": "126.987882083295",
+          "mapy": "37.5510545366352",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -461,7 +948,37 @@
       "lDongSignguCd": "140",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0113",
-      "lclsSystm3": "C01130001"
+      "lclsSystm3": "C01130001",
+      "stops": [
+        {
+          "contentid": "127454",
+          "title": "운현궁",
+          "mapx": "126.9871421746",
+          "mapy": "37.5764588036",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126510",
+          "title": "종묘",
+          "mapx": "126.9951311023",
+          "mapy": "37.5709802173",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "704507",
+          "title": "점심식사(서울 동대문 닭한마리 골목, 진원조 보신닭한마리)",
+          "mapx": "127.0058684191",
+          "mapy": "37.5703487391",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1906334",
+          "title": "동대문역사문화공원",
+          "mapx": "127.0095709797",
+          "mapy": "37.5661076320",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -488,7 +1005,37 @@
       "lDongSignguCd": "560",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "809596",
+          "title": "여의도샛강생태공원",
+          "mapx": "126.9219608556",
+          "mapy": "37.5187726724",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "749355",
+          "title": "영등포 신길동 홍어거리",
+          "mapx": "126.9115648107",
+          "mapy": "37.5106012142",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "738667",
+          "title": "점심식사(원조홍어전문본점)",
+          "mapx": "126.9117330940",
+          "mapy": "37.5106994015",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1054888",
+          "title": "여의도 둘레길(여의도 자전거도로)",
+          "mapx": "126.9336123570",
+          "mapy": "37.5263886632",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -515,7 +1062,37 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0113",
-      "lclsSystm3": "C01130001"
+      "lclsSystm3": "C01130001",
+      "stops": [
+        {
+          "contentid": "1367251",
+          "title": "부암동",
+          "mapx": "126.9640854894",
+          "mapy": "37.5924870824",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1922694",
+          "title": "점심식사(소소한 풍경) ",
+          "mapx": "126.965977450872",
+          "mapy": "37.5936017299754",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1605948",
+          "title": "대원군별장",
+          "mapx": "126.9627744300",
+          "mapy": "37.5948701151",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "337557",
+          "title": "옥천암(서울)",
+          "mapx": "126.9539196180",
+          "mapy": "37.5971141398",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -542,7 +1119,51 @@
       "lDongSignguCd": "140",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0112",
-      "lclsSystm3": "C01120001"
+      "lclsSystm3": "C01120001",
+      "stops": [
+        {
+          "contentid": "128162",
+          "title": "숭례문",
+          "mapx": "126.9752992762",
+          "mapy": "37.5599855058",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "250364",
+          "title": "문화역서울 284(구, 서울역사)",
+          "mapx": "126.9716247231",
+          "mapy": "37.5560109019",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126509",
+          "title": "덕수궁",
+          "mapx": "126.97657463444833",
+          "mapy": "37.565054919430565",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "128968",
+          "title": "서울광장",
+          "mapx": "126.97878183534239",
+          "mapy": "37.56544835496842",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126747",
+          "title": "남산한옥마을",
+          "mapx": "126.9932865315",
+          "mapy": "37.5597775194",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126535",
+          "title": "남산서울타워",
+          "mapx": "126.987882083295",
+          "mapy": "37.5510545366352",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -569,7 +1190,30 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "1019294",
+          "title": "정독도서관",
+          "mapx": "126.9832368815",
+          "mapy": "37.5797611278",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "130903",
+          "title": "북촌문화센터",
+          "mapx": "126.9867060298",
+          "mapy": "37.5790529392",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126488",
+          "title": "삼청공원",
+          "mapx": "126.9828199930",
+          "mapy": "37.5889267212",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -596,7 +1240,44 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0112",
-      "lclsSystm3": "C01120001"
+      "lclsSystm3": "C01120001",
+      "stops": [
+        {
+          "contentid": "126508",
+          "title": "경복궁",
+          "mapx": "126.97672186606306",
+          "mapy": "37.576030700049394",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1202753",
+          "title": "자하미술관",
+          "mapx": "126.96030282818546",
+          "mapy": "37.58937662849057",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "252547",
+          "title": "창의문(자하문)",
+          "mapx": "126.9665102630",
+          "mapy": "37.5926565508",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "809372",
+          "title": "백사실계곡",
+          "mapx": "126.966332776788",
+          "mapy": "37.6004286814137",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126494",
+          "title": "세검정",
+          "mapx": "126.9597189808",
+          "mapy": "37.6009471313",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -623,7 +1304,23 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "252547",
+          "title": "창의문",
+          "mapx": "126.9665102630",
+          "mapy": "37.5926565508",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126537",
+          "title": "북촌한옥마을",
+          "mapx": "126.9867060298",
+          "mapy": "37.5790529392",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -650,7 +1347,30 @@
       "lDongSignguCd": "290",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0114",
-      "lclsSystm3": "C01140001"
+      "lclsSystm3": "C01140001",
+      "stops": [
+        {
+          "contentid": "128866",
+          "title": "길상사",
+          "mapx": "126.9939575925",
+          "mapy": "37.5985980194",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "129501",
+          "title": "낙산공원",
+          "mapx": "127.006496092905",
+          "mapy": "37.5805179476871",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126534",
+          "title": "대학로",
+          "mapx": "127.0023878907",
+          "mapy": "37.5805669329",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -677,7 +1397,30 @@
       "lDongSignguCd": "170",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0114",
-      "lclsSystm3": "C01140001"
+      "lclsSystm3": "C01140001",
+      "stops": [
+        {
+          "contentid": "130525",
+          "title": "삼성리움미술관 ",
+          "mapx": "126.9984927659692",
+          "mapy": "37.53854914108885",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "684280",
+          "title": "점심식사(백리향, 서글렁탕)",
+          "mapx": "126.9398592010",
+          "mapy": "37.5196284490",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "129196",
+          "title": "파주 프로방스 마을",
+          "mapx": "126.684954889134",
+          "mapy": "37.7903476355662",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -704,7 +1447,51 @@
       "lDongSignguCd": "140",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0112",
-      "lclsSystm3": "C01120001"
+      "lclsSystm3": "C01120001",
+      "stops": [
+        {
+          "contentid": "126747",
+          "title": "남산골 한옥마을",
+          "mapx": "126.9932865315",
+          "mapy": "37.5597775194",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "407057",
+          "title": "남산국악당",
+          "mapx": "126.9932865315",
+          "mapy": "37.5597775194",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "747811",
+          "title": "점심식사(호남식당)",
+          "mapx": "126.9769824584",
+          "mapy": "37.5598827704",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "128776",
+          "title": "남산케이블카",
+          "mapx": "126.9841041137",
+          "mapy": "37.5569971220",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126535",
+          "title": "N 서울타워",
+          "mapx": "126.987882083295",
+          "mapy": "37.5510545366352",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1606009",
+          "title": "오위장 김춘영 가옥",
+          "mapx": "126.9948",
+          "mapy": "37.5588",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -731,7 +1518,37 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0113",
-      "lclsSystm3": "C01130001"
+      "lclsSystm3": "C01130001",
+      "stops": [
+        {
+          "contentid": "126537",
+          "title": "북촌한옥마을",
+          "mapx": "126.9867060298",
+          "mapy": "37.5790529392",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "513517",
+          "title": "점심식사(청수정, 55번지라면)",
+          "mapx": "126.981653986595",
+          "mapy": "37.5835199097866",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "129760",
+          "title": "환기미술관",
+          "mapx": "126.9661269237",
+          "mapy": "37.5940980426",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126943",
+          "title": "북악스카이 팔각정",
+          "mapx": "126.9805642714",
+          "mapy": "37.6020279351",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -758,7 +1575,44 @@
       "lDongSignguCd": "170",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0117",
-      "lclsSystm3": "C01170001"
+      "lclsSystm3": "C01170001",
+      "stops": [
+        {
+          "contentid": "2384290",
+          "title": "스토리지북앤필름",
+          "mapx": "126.98314082438343",
+          "mapy": "37.54472649468837",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "2378251",
+          "title": "카사블랑카",
+          "mapx": "126.98711348865513",
+          "mapy": "37.54164249492243",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "128776",
+          "title": "남산 케이블카",
+          "mapx": "126.9841041137",
+          "mapy": "37.5569971220",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126485",
+          "title": "남산공원(서울)",
+          "mapx": "126.9922311881",
+          "mapy": "37.5556863093",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1603336",
+          "title": "남산 팔각정",
+          "mapx": "126.9876206116",
+          "mapy": "37.5516394747",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -785,7 +1639,44 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0112",
-      "lclsSystm3": "C01120001"
+      "lclsSystm3": "C01120001",
+      "stops": [
+        {
+          "contentid": "127642",
+          "title": "창덕궁과 후원 [유네스코 세계문화유산]",
+          "mapx": "126.9902306310",
+          "mapy": "37.5776507425",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "2608977",
+          "title": "국립민속박물관",
+          "mapx": "126.978889955558",
+          "mapy": "37.5816745310255",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1934593",
+          "title": "국립현대미술관(서울관)",
+          "mapx": "126.9800038741",
+          "mapy": "37.5786500878",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126510",
+          "title": "종묘 [유네스코 세계문화유산]",
+          "mapx": "126.9951311023",
+          "mapy": "37.5709802173",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "132183",
+          "title": "광장시장",
+          "mapx": "126.9997217621",
+          "mapy": "37.5701653166",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -812,7 +1703,37 @@
       "lDongSignguCd": "140",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "264311",
+          "title": "명동",
+          "mapx": "126.9849150050",
+          "mapy": "37.5621520930",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126747",
+          "title": "남산골한옥마을",
+          "mapx": "126.9932865315",
+          "mapy": "37.5597775194",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "407057",
+          "title": "서울남산국악당",
+          "mapx": "126.9932865315",
+          "mapy": "37.5597775194",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126999",
+          "title": "이태원관광특구",
+          "mapx": "126.99065548030292",
+          "mapy": "37.53392419699384",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -839,7 +1760,30 @@
       "lDongSignguCd": "410",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0113",
-      "lclsSystm3": "C01130001"
+      "lclsSystm3": "C01130001",
+      "stops": [
+        {
+          "contentid": "128622",
+          "title": "서대문독립공원",
+          "mapx": "126.9573421635",
+          "mapy": "37.5746723659",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126503",
+          "title": "봉원사(서울)",
+          "mapx": "126.9472292784",
+          "mapy": "37.5717780764",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1019327",
+          "title": "긱 라이브하우스",
+          "mapx": "126.9320588728",
+          "mapy": "37.5564379211",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -866,7 +1810,30 @@
       "lDongSignguCd": "290",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "128866",
+          "title": "길상사(서울)",
+          "mapx": "126.9939575925",
+          "mapy": "37.5985980194",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1395270",
+          "title": "최순우 옛집",
+          "mapx": "127.0003599434",
+          "mapy": "37.5930654442",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "127616",
+          "title": "서울 정릉 [유네스코 세계문화유산]",
+          "mapx": "127.00759445141614",
+          "mapy": "37.60122309230123",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -893,7 +1860,44 @@
       "lDongSignguCd": "170",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "1603336",
+          "title": "남산 팔각정",
+          "mapx": "126.9876206116",
+          "mapy": "37.5516394747",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1603482",
+          "title": "남산 야외식물원",
+          "mapx": "126.9949",
+          "mapy": "37.5426",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "129794",
+          "title": "안중근의사기념관",
+          "mapx": "126.98040242744298",
+          "mapy": "37.553466172890815",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "748018",
+          "title": "점심식사(남대문 갈치조림골목) ",
+          "mapx": "126.9769408005",
+          "mapy": "37.5597300093",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "132180",
+          "title": "남대문시장",
+          "mapx": "126.9776796357",
+          "mapy": "37.5592467455",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -920,7 +1924,37 @@
       "lDongSignguCd": "230",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0112",
-      "lclsSystm3": "C01120001"
+      "lclsSystm3": "C01120001",
+      "stops": [
+        {
+          "contentid": "132220",
+          "title": "서울약령시장",
+          "mapx": "127.037026488849",
+          "mapy": "37.5790881196833",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126500",
+          "title": "홍릉수목원",
+          "mapx": "127.0426503095327",
+          "mapy": "37.59167677126608",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "699249",
+          "title": "서울 신당동 떡볶이 골목",
+          "mapx": "127.0146067184",
+          "mapy": "37.5630580770",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "129507",
+          "title": "청계천",
+          "mapx": "127.0050743200",
+          "mapy": "37.5696470253",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -947,7 +1981,44 @@
       "lDongSignguCd": "170",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0112",
-      "lclsSystm3": "C01120001"
+      "lclsSystm3": "C01120001",
+      "stops": [
+        {
+          "contentid": "129703",
+          "title": "국립중앙박물관",
+          "mapx": "126.97911242871115",
+          "mapy": "37.521116788705534",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126499",
+          "title": "용산가족공원",
+          "mapx": "126.9832663463",
+          "mapy": "37.5200458446",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "704506",
+          "title": "점심식사 (서울 삼각지 대구탕 골목, 유진막국수)",
+          "mapx": "126.9741028792",
+          "mapy": "37.5346495390",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "130431",
+          "title": "전쟁기념관",
+          "mapx": "126.9784385198",
+          "mapy": "37.5373270838",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126535",
+          "title": "남산서울타워",
+          "mapx": "126.987882083295",
+          "mapy": "37.5510545366352",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -974,7 +2045,44 @@
       "lDongSignguCd": "140",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0113",
-      "lclsSystm3": "C01130001"
+      "lclsSystm3": "C01130001",
+      "stops": [
+        {
+          "contentid": "250330",
+          "title": "서울 약현성당",
+          "mapx": "126.9674194623",
+          "mapy": "37.5591437954",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1605977",
+          "title": "서소문근린공원",
+          "mapx": "126.9693637143",
+          "mapy": "37.5596854342",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "403068",
+          "title": "점심식사(청송옥)",
+          "mapx": "126.9730910418",
+          "mapy": "37.5635933807",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "945824",
+          "title": "서울 경교장",
+          "mapx": "126.9686079871",
+          "mapy": "37.5681816549",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "129186",
+          "title": "덕수궁 돌담길",
+          "mapx": "126.9748935853",
+          "mapy": "37.5660820124",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -1001,7 +2109,37 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "250323",
+          "title": "천도교중앙대교당",
+          "mapx": "126.98651093357412",
+          "mapy": "37.57520900465103",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "129534",
+          "title": "탑골공원",
+          "mapx": "126.98860813395662",
+          "mapy": "37.570500754785236",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "605445",
+          "title": "독립선언서 배부터(승동교회)",
+          "mapx": "126.98629832966",
+          "mapy": "37.5711992740533",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "132226",
+          "title": "낙원 악기상가",
+          "mapx": "126.9880310857",
+          "mapy": "37.5728259087",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -1028,7 +2166,37 @@
       "lDongSignguCd": "140",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "126747",
+          "title": "남산골한옥마을",
+          "mapx": "126.9932865315",
+          "mapy": "37.5597775194",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126491",
+          "title": "장충단공원",
+          "mapx": "127.0048160637",
+          "mapy": "37.5588195041",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "129502",
+          "title": "광희문",
+          "mapx": "127.01",
+          "mapy": "37.5644",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "990140",
+          "title": "장충체육관",
+          "mapx": "127.0068047884",
+          "mapy": "37.5582390522",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -1055,7 +2223,30 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0114",
-      "lclsSystm3": "C01140001"
+      "lclsSystm3": "C01140001",
+      "stops": [
+        {
+          "contentid": "127642",
+          "title": "창덕궁과 후원 [유네스코 세계문화유산]",
+          "mapx": "126.9902306310",
+          "mapy": "37.5776507425",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126537",
+          "title": "북촌한옥마을",
+          "mapx": "126.9867060298",
+          "mapy": "37.5790529392",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "250147",
+          "title": "삼청동길",
+          "mapx": "126.98280518277133",
+          "mapy": "37.58887435662737",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -1082,7 +2273,37 @@
       "lDongSignguCd": "650",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "1021339",
+          "title": "서래마을",
+          "mapx": "126.9983156029",
+          "mapy": "37.4978514700",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "970052",
+          "title": "세빛섬",
+          "mapx": "126.996",
+          "mapy": "37.5125",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "729167",
+          "title": "반포대교 달빛무지개분수",
+          "mapx": "126.9985",
+          "mapy": "37.5126",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "753981",
+          "title": "몽마르뜨공원",
+          "mapx": "127.0045483736",
+          "mapy": "37.4976821568",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -1109,7 +2330,30 @@
       "lDongSignguCd": "440",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "1907518",
+          "title": "전쟁과여성인권박물관",
+          "mapx": "126.9148547823",
+          "mapy": "37.5600955212",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "130348",
+          "title": "대안공간 루프",
+          "mapx": "126.9278315359",
+          "mapy": "37.5544630750",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "781031",
+          "title": "홍대",
+          "mapx": "126.9231",
+          "mapy": "37.555",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -1136,7 +2380,44 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "132200",
+          "title": "동대문종합시장 쇼핑타운",
+          "mapx": "127.0073349346",
+          "mapy": "37.5709736927",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "2470006",
+          "title": "동대문디자인플라자(DDP)",
+          "mapx": "127.0095709797",
+          "mapy": "37.5661076320",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1325115",
+          "title": "점심식사(진옥화할매원조닭한마리, 평양면옥)",
+          "mapx": "127.0057128756",
+          "mapy": "37.5704292825",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1906334",
+          "title": "동대문역사문화공원",
+          "mapx": "127.0095709797",
+          "mapy": "37.5661076320",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1754832",
+          "title": "서울풍물시장",
+          "mapx": "127.0255193372",
+          "mapy": "37.5727654781",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -1163,7 +2444,51 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "775394",
+          "title": "광화문광장",
+          "mapx": "126.9769547555",
+          "mapy": "37.5726489283",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126484",
+          "title": "경희궁",
+          "mapx": "126.968491756842",
+          "mapy": "37.5703879399457",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "130071",
+          "title": "서울시립미술관(서소문본관)",
+          "mapx": "126.97367754109",
+          "mapy": "37.5641082438607",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "732321",
+          "title": "점심식사(정동국시) ",
+          "mapx": "126.9699125624713",
+          "mapy": "37.56785988534071",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "945824",
+          "title": "서울 경교장",
+          "mapx": "126.9686079871",
+          "mapy": "37.5681816549",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126509",
+          "title": "덕수궁",
+          "mapx": "126.97657463444833",
+          "mapy": "37.565054919430565",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -1190,7 +2515,44 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0114",
-      "lclsSystm3": "C01140001"
+      "lclsSystm3": "C01140001",
+      "stops": [
+        {
+          "contentid": "264353",
+          "title": "인사동",
+          "mapx": "126.9835230884",
+          "mapy": "37.5754616322",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126537",
+          "title": "북촌한옥마을",
+          "mapx": "126.9867060298",
+          "mapy": "37.5790529392",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "837020",
+          "title": "점심식사(황생가칼국수, 소선재)",
+          "mapx": "126.98062085353",
+          "mapy": "37.5800369825294",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126511",
+          "title": "창경궁",
+          "mapx": "126.9964634775",
+          "mapy": "37.5789336838",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126510",
+          "title": "종묘[유네스코 세계문화유산]",
+          "mapx": "126.9951311023",
+          "mapy": "37.5709802173",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -1217,7 +2579,30 @@
       "lDongSignguCd": "680",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0114",
-      "lclsSystm3": "C01140001"
+      "lclsSystm3": "C01140001",
+      "stops": [
+        {
+          "contentid": "126525",
+          "title": "서울 선릉과 정릉 [유네스코 세계문화유산]",
+          "mapx": "127.0471803291",
+          "mapy": "37.5074206801",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126504",
+          "title": "봉은사",
+          "mapx": "127.057317",
+          "mapy": "37.514861",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "987720",
+          "title": "신사 가로수길",
+          "mapx": "127.0227572041",
+          "mapy": "37.5197049261",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -1244,7 +2629,37 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "126534",
+          "title": "대학로",
+          "mapx": "127.0023878907",
+          "mapy": "37.5805669329",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126517",
+          "title": "서울 문묘와 성균관",
+          "mapx": "126.996705105892",
+          "mapy": "37.5854861328543",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126510",
+          "title": "종묘 [유네스코 세계문화유산]",
+          "mapx": "126.9951311023",
+          "mapy": "37.5709802173",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1605036",
+          "title": "자생식물학습장",
+          "mapx": "126.99644883554714",
+          "mapy": "37.57888092158742",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -1271,7 +2686,30 @@
       "lDongSignguCd": "290",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "1395466",
+          "title": "만해한용운심우장",
+          "mapx": "126.99181565330248",
+          "mapy": "37.59359923851268",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "129500",
+          "title": "서울성곽 북악산 숙정문",
+          "mapx": "126.9811144048",
+          "mapy": "37.5955536984",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "128866",
+          "title": "길상사(서울)",
+          "mapx": "126.9939575925",
+          "mapy": "37.5985980194",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -1298,7 +2736,37 @@
       "lDongSignguCd": "350",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0115",
-      "lclsSystm3": "C01150001"
+      "lclsSystm3": "C01150001",
+      "stops": [
+        {
+          "contentid": "1866427",
+          "title": "서울시립 북서울미술관",
+          "mapx": "127.0668719687",
+          "mapy": "37.6407111019",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "822384",
+          "title": "북서울 꿈의 숲",
+          "mapx": "127.0445440464",
+          "mapy": "37.6197242510",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "750901",
+          "title": "송암사",
+          "mapx": "127.0850912761",
+          "mapy": "37.6845868836",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126482",
+          "title": "불암산",
+          "mapx": "127.0949159758",
+          "mapy": "37.6637533728",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -1325,7 +2793,30 @@
       "lDongSignguCd": "110",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0117",
-      "lclsSystm3": "C01170001"
+      "lclsSystm3": "C01170001",
+      "stops": [
+        {
+          "contentid": "126533",
+          "title": "청와대 앞길",
+          "mapx": "126.973751980892",
+          "mapy": "37.5834864376289",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1928360",
+          "title": "한국전통주연구소",
+          "mapx": "126.8314474995",
+          "mapy": "36.6882559999",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1604450",
+          "title": "황학정",
+          "mapx": "126.9651024987",
+          "mapy": "37.5771000006",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -1352,7 +2843,51 @@
       "lDongSignguCd": "140",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0112",
-      "lclsSystm3": "C01120001"
+      "lclsSystm3": "C01120001",
+      "stops": [
+        {
+          "contentid": "129507",
+          "title": "청계천",
+          "mapx": "127.0050743200",
+          "mapy": "37.5696470253",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126508",
+          "title": "경복궁",
+          "mapx": "126.97672186606306",
+          "mapy": "37.576030700049394",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "402994",
+          "title": "점심식사(삼청동 수제비, 수와래)",
+          "mapx": "126.9819035323",
+          "mapy": "37.5846049848",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "2608977",
+          "title": "국립민속박물관",
+          "mapx": "126.978889955558",
+          "mapy": "37.5816745310255",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126537",
+          "title": "북촌한옥마을",
+          "mapx": "126.9867060298",
+          "mapy": "37.5790529392",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "264353",
+          "title": "인사동",
+          "mapx": "126.9835230884",
+          "mapy": "37.5754616322",
+          "contentType": "관광지"
+        }
+      ]
     },
     {
       "addr1": "",
@@ -1379,7 +2914,37 @@
       "lDongSignguCd": "710",
       "lclsSystm1": "C01",
       "lclsSystm2": "C0112",
-      "lclsSystm3": "C01120001"
+      "lclsSystm3": "C01120001",
+      "stops": [
+        {
+          "contentid": "754052",
+          "title": "석촌호수",
+          "mapx": "127.0989440000",
+          "mapy": "37.5079160000",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "126498",
+          "title": "롯데월드",
+          "mapx": "127.0978836077",
+          "mapy": "37.5112974856",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "127525",
+          "title": "몽촌토성",
+          "mapx": "127.1229758237",
+          "mapy": "37.5209871362",
+          "contentType": "관광지"
+        },
+        {
+          "contentid": "1916296",
+          "title": "한성백제박물관",
+          "mapx": "127.1206650789",
+          "mapy": "37.5154988428",
+          "contentType": "관광지"
+        }
+      ]
     }
   ]
 }
