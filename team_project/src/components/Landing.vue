@@ -2,13 +2,13 @@
   <section class="landing-root">
     <header class="hero">
       <div class="hero-inner">
-        <div class="hero-copy">
-          <h1 class="hero-title">Discover Seoul</h1>
-          <p class="hero-sub">인기 관광지와 지역별 추천 명소를 한눈에.</p>
+        <div class="hero-left">
+          <h1 class="title">Discover Seoul</h1>
+          <p class="subtitle">인기 관광지와 지역별 추천 명소를 한눈에.</p>
 
-          <div class="hero-actions">
+          <div class="pills">
             <button
-              :class="['pill', activeCategory === 'all' ? 'pill--primary' : '']"
+              :class="['pill', activeCategory === 'all' ? 'pill--active' : '']"
               @click="setCategory('all')"
             >
               전체
@@ -17,7 +17,7 @@
             <button
               v-for="cat in categories"
               :key="cat"
-              :class="['pill', activeCategory === cat ? 'pill--primary' : '']"
+              :class="['pill', activeCategory === cat ? 'pill--active' : '']"
               @click="setCategory(cat)"
             >
               {{ catLabels[cat] || cat }}
@@ -25,9 +25,14 @@
           </div>
         </div>
 
-        <div class="hero-media" aria-hidden="true">
-          <div class="media-grid">
-            <div v-for="(it, i) in sampleHero" :key="i" class="media-thumb">
+        <div class="hero-right" aria-hidden="true">
+          <div class="collage">
+            <div
+              v-for="(it, idx) in sampleHero"
+              :key="idx"
+              class="collage-item"
+              :style="{ '--i': idx }"
+            >
               <img :src="it.image || placeholder" :alt="it.name" />
             </div>
           </div>
@@ -36,8 +41,8 @@
     </header>
 
     <main class="content">
-      <div class="cards-toolbar">
-        <div class="results-count">{{ filteredCards.length }}개 항목</div>
+      <div class="toolbar">
+        <div class="count">{{ filteredCards.length }}개 항목</div>
       </div>
 
       <transition-group name="flip" tag="div" class="cards-grid">
@@ -49,7 +54,7 @@
         >
           <div class="card-media">
             <img :src="card.image || placeholder" :alt="card.name" />
-            <span class="card-type">{{ catLabels[card.type] || card.type || '기타' }}</span>
+            <span class="badge">{{ catLabels[card.type] || card.type || '기타' }}</span>
           </div>
           <div class="card-body">
             <h3 class="card-title">{{ card.name }}</h3>
@@ -60,7 +65,7 @@
 
       <div v-if="filteredCards.length === 0" class="empty">
         해당 카테고리에 항목이 없습니다.
-        <button class="empty-reset" @click="setCategory('all')">전체 보기</button>
+        <button class="empty-btn" @click="setCategory('all')">전체 보기</button>
       </div>
     </main>
   </section>
@@ -73,7 +78,6 @@ const props = defineProps({
   items: { type: Array, default: () => [] }
 })
 
-/* normalize items once */
 const normalized = computed(() =>
   (props.items || []).map((i, idx) => {
     const name = i.name || i.title || `무명-${idx}`
@@ -94,7 +98,7 @@ const groups = computed(() => {
   return m
 })
 
-const categories = computed(() => Array.from(groups.value.keys()))
+const categories = computed(() => Array.from(groups.value.keys()).slice(0, 8))
 
 const catLabels = {
   '12': '관광지', 'VE': '야외/공원', 'HS': '역사/문화', 'EX': '체험/산업', '기타': '기타'
@@ -112,161 +116,165 @@ const filteredCards = computed(() => {
 })
 
 const placeholder = '' // 필요시 경로 지정
-const sampleHero = computed(() => normalized.value.slice(0, 8))
+const sampleHero = computed(() => normalized.value.slice(0, 9))
 
 function onCardClick(card) {
-  // 클릭 후 동작(지도 포커스 / 모달 등) - 필요시 구현
-  // 예: emit('select', card)
+  // 필요한 동작: emit('select', card) 등으로 확장 가능
 }
 </script>
 
 <style scoped>
+/* Variables */
 :root {
-  --bg: #0b1020;
-  --card-bg: linear-gradient(180deg, #ffffff, #fbfbff);
-  --accent: #ff6b6b;
-  --primary: #2563eb;
+  --bg: #0f1724;
+  --panel: #ffffff;
   --muted: #6b7280;
+  --accent: #1f2937;
+  --primary: #ff6b6b;
+  --shadow-1: 0 18px 40px rgba(2,6,23,0.06);
 }
 
-/* layout */
+/* Container */
 .landing-root {
   max-width: 1200px;
-  margin: 32px auto;
+  margin: 40px auto;
   padding: 24px;
-  font-family: Inter, "Noto Sans KR", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  font-family: Inter, "Noto Sans KR", system-ui, -apple-system, "Segoe UI", Roboto, Arial;
   color: #0b1220;
 }
 
-/* Hero */
+/* Hero (reference style: large left copy, right image collage) */
 .hero {
-  border-radius: 16px;
-  padding: 36px;
-  background: radial-gradient(1200px 400px at 10% 10%, rgba(37,99,235,0.06), transparent 18%),
-              linear-gradient(180deg, rgba(255,255,255,0.98), rgba(249,250,255,0.9));
-  box-shadow: 0 18px 40px rgba(2,6,23,0.06);
+  background: linear-gradient(180deg, rgba(250,250,252,0.95), rgba(245,247,250,0.95));
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: var(--shadow-1);
   margin-bottom: 28px;
+  overflow: visible;
 }
 
 .hero-inner {
   display: flex;
-  gap: 28px;
+  gap: 32px;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
 }
 
-.hero-copy {
-  flex: 1 1 420px;
+/* Left copy */
+.hero-left {
+  flex: 1 1 540px;
   min-width: 280px;
 }
 
-.hero-title {
-  margin: 0 0 8px 0;
-  font-size: clamp(1.6rem, 3.6vw, 2.8rem);
+.title {
+  margin: 0 0 10px 0;
+  font-size: clamp(1.8rem, 4.5vw, 3.6rem);
   line-height: 1.02;
-  font-weight: 800;
-  color: #0f172a;
+  font-weight: 900;
+  color: #0b1220;
   letter-spacing: -0.02em;
 }
 
-.hero-sub {
-  margin: 0 0 16px 0;
+.subtitle {
+  margin: 0 0 18px 0;
   color: var(--muted);
-  font-size: 1.02rem;
+  font-size: 1.05rem;
 }
 
-/* Pills */
-.hero-actions {
+/* Pills (category buttons) */
+.pills {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  margin-top: 12px;
 }
 
 .pill {
   background: transparent;
-  border: 1px solid rgba(15,23,42,0.06);
-  padding: 9px 14px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  padding: 10px 14px;
   border-radius: 999px;
   cursor: pointer;
-  font-weight: 700;
-  color: #24324a;
+  font-weight: 800;
+  color: #213145;
   transition: all 180ms ease;
-  box-shadow: none;
 }
 .pill:hover { transform: translateY(-3px); }
-.pill--primary {
-  background: var(--primary);
+.pill--active {
+  background: #111827;
   color: white;
-  border-color: var(--primary);
-  box-shadow: 0 10px 28px rgba(37,99,235,0.12);
+  border-color: #111827;
+  box-shadow: 0 14px 36px rgba(17,24,39,0.12);
 }
 
-/* Hero media grid */
-.hero-media {
+/* Right collage (staggered grid like reference) */
+.hero-right {
   width: 420px;
-  max-width: 45%;
+  max-width: 46%;
   min-width: 220px;
+  display: flex;
+  justify-content: flex-end;
 }
 
-.media-grid {
+.collage {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  align-items: stretch;
+  gap: 10px;
+  width: 420px;
+  height: 140px;
+  position: relative;
 }
 
-.media-thumb {
-  height: 88px;
-  border-radius: 10px;
+.collage-item {
+  border-radius: 12px;
   overflow: hidden;
   background: linear-gradient(180deg,#eef2ff,#fff);
-  box-shadow: 0 6px 20px rgba(2,6,23,0.06);
-  border: 1px solid rgba(15,23,42,0.03);
+  box-shadow: 0 10px 28px rgba(2,6,23,0.06);
+  transform-origin: center;
+  transition: transform 220ms ease, box-shadow 220ms ease;
 }
-.media-thumb img {
+.collage-item img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display:block;
+  display: block;
 }
 
-/* Content area */
-.content {
-  min-height: 320px;
-}
+/* subtle stagger using css var index */
+.collage-item { transform: translateY(calc(var(--i) * -2px)); }
+.collage-item:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 20px 48px rgba(2,6,23,0.12); }
 
-/* toolbar */
-.cards-toolbar {
+/* Toolbar */
+.toolbar {
   display:flex;
   justify-content:space-between;
   align-items:center;
   margin-bottom:12px;
 }
-.results-count { color: var(--muted); font-weight:700; }
+.count { color: var(--muted); font-weight:700; }
 
-/* cards grid */
+/* Cards Grid */
 .cards-grid {
   display:grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap:18px;
 }
 
+/* Card */
 .card {
-  background: var(--card-bg);
+  background: linear-gradient(180deg,#fff,#fbfbff);
   border-radius: 14px;
   overflow:hidden;
   cursor:pointer;
-  transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms;
-  box-shadow: 0 14px 36px rgba(2,6,23,0.06);
+  transition: transform 240ms cubic-bezier(.2,.9,.2,1), box-shadow 240ms;
+  box-shadow: 0 12px 30px rgba(2,6,23,0.06);
   border: 1px solid rgba(15,23,42,0.04);
   display:flex;
   flex-direction:column;
 }
 .card:hover {
   transform: translateY(-10px) scale(1.01);
-  box-shadow: 0 26px 60px rgba(2,6,23,0.10);
+  box-shadow: 0 28px 64px rgba(2,6,23,0.12);
 }
 
 .card-media {
@@ -276,26 +284,28 @@ function onCardClick(card) {
   overflow:hidden;
 }
 .card-media img { width:100%; height:100%; object-fit:cover; display:block; }
-.card-type {
+
+/* badge like reference */
+.badge {
   position: absolute;
   left: 12px;
   bottom: 12px;
-  background: rgba(0,0,0,0.64);
+  background: rgba(0,0,0,0.66);
   color: #fff;
   padding:6px 10px;
-  border-radius:999px;
+  border-radius: 999px;
   font-size:0.78rem;
   font-weight:700;
 }
 
 /* body */
 .card-body { padding:14px; }
-.card-title { margin:0 0 8px 0; font-size:1.03rem; line-height:1.1; }
+.card-title { margin:0 0 8px 0; font-size:1.02rem; line-height:1.1; font-weight:800; }
 .card-desc { margin:0; color:var(--muted); font-size:0.94rem; }
 
-/* empty */
+/* empty state */
 .empty { padding:36px; text-align:center; color:var(--muted); }
-.empty-reset {
+.empty-btn {
   margin-top:12px;
   padding:8px 14px;
   border-radius:10px;
@@ -309,18 +319,18 @@ function onCardClick(card) {
 .flip-enter-from, .flip-leave-to { opacity:0; transform: translateY(12px); }
 .flip-enter-active, .flip-leave-active { transition: all 320ms cubic-bezier(.2,.9,.2,1); }
 
-/* responsive */
+/* Responsive */
 @media (max-width: 960px) {
-  .hero-inner { gap:16px; }
-  .hero-media { width: 320px; max-width: 48%; }
+  .hero-right { width: 320px; max-width: 48%; }
+  .collage { height: 128px; }
 }
 @media (max-width: 720px) {
   .hero {
     padding:20px;
   }
-  .hero-inner { flex-direction: column-reverse; align-items:stretch; }
-  .hero-media { width:100%; max-width:100%; }
-  .media-thumb { height:84px; }
+  .hero-inner { flex-direction: column-reverse; align-items:stretch; gap:18px; }
+  .hero-right { width:100%; max-width:100%; }
+  .collage { width:100%; grid-template-columns: repeat(3, 1fr); height: 96px; gap:8px; }
   .card-media { height:140px; }
 }
 </style>
