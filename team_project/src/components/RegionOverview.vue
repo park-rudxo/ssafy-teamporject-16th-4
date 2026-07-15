@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onBeforeUnmount, watch, ref } from 'vue'
+import { onMounted, onBeforeUnmount, watch, ref, computed } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -28,6 +28,9 @@ const hasCoords = ref(false)
 
 const typeKeys = Object.keys(typeColors)
 const selectedTypes = ref(new Set(typeKeys))
+const routeStops = ref([])
+const selectedCategory = ref('전체')
+const searchQuery = ref('')
 
 function parseCoord(value) {
   const num = Number(value)
@@ -56,6 +59,84 @@ function toggleType(type) {
 function selectAllTypes() {
   selectedTypes.value = new Set(typeKeys)
   updateMarkers()
+}
+
+function normalizeDisplayItem(item, index) {
+  if (typeof item === 'string') {
+    return { id: `string-${index}`, name: item, description: '', type: null }
+  }
+
+  const name = item?.name || item?.title || item?.place || '장소'
+  const description = item?.description || item?.addr1 || item?.addr2 || ''
+  const type = normalizeType(item?.type ?? item?.contentType ?? item?.contentTypeId ?? item?.contenttype ?? null)
+
+  return {
+    id: item?.id ?? item?.contentid ?? `${name}-${index}`,
+    name,
+    description,
+    type
+  }
+}
+
+const availablePlaces = computed(() => {
+  const points = Array.isArray(props.region?.highlights) ? props.region.highlights : []
+  return points
+    .map((p, idx) => normalizeDisplayItem(p, idx))
+    .filter(item => item && item.name)
+})
+
+const filteredPlaces = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+
+  return availablePlaces.value.filter(place => {
+    const matchesCategory =
+      selectedCategory.value === '전체' || place.type === selectedCategory.value
+
+    const matchesQuery =
+      !query ||
+      place.name.toLowerCase().includes(query) ||
+      place.description.toLowerCase().includes(query)
+
+    return matchesCategory && matchesQuery
+  })
+})
+
+const routeSummary = computed(() => {
+  if (!routeStops.value.length) {
+    return '관심 있는 장소를 추가해 경로를 완성해 보세요.'
+  }
+
+  return routeStops.value
+    .map((stop, idx) => `${idx + 1}. ${stop.name}`)
+    .join(' → ')
+})
+
+function addToRoute(item) {
+  if (!item) return
+
+  const exists = routeStops.value.some(stop => stop.id === item.id)
+  if (exists) return
+
+  routeStops.value.push(item)
+}
+
+function removeFromRoute(id) {
+  routeStops.value = routeStops.value.filter(stop => stop.id !== id)
+}
+
+function moveRouteItem(index, direction) {
+  const nextIndex = index + direction
+  if (nextIndex < 0 || nextIndex >= routeStops.value.length) return
+
+  const updated = [...routeStops.value]
+  const [target] = updated.splice(index, 1)
+  updated.splice(nextIndex, 0, target)
+  routeStops.value = updated
+}
+
+function seedRoute() {
+  const initial = filteredPlaces.value.slice(0, 3).map(item => ({ ...item }))
+  routeStops.value = initial
 }
 
 delete L.Icon.Default.prototype._getIconUrl
@@ -139,6 +220,7 @@ onBeforeUnmount(() => {
 watch(
   () => props.region,
   () => {
+    routeStops.value = []
     boundsInitialized = false
     updateMarkers()
     setTimeout(() => map && map.invalidateSize && map.invalidateSize(), 200)
@@ -150,54 +232,167 @@ watch(
 <template>
   <section class="card region-overview">
     <div class="region-header">
-      <h2>{{ region?.name }}</h2>
-      <p>{{ region?.description }}</p>
-    </div>
-
-    <div class="type-filter-bar" v-if="hasCoords">
-      <button
-        class="type-button all"
-        :class="{ active: selectedTypes.size === typeKeys.length }"
-        @click="selectAllTypes"
-      >
-        전체
-      </button>
-
-      <button
-        v-for="type in typeKeys"
-        :key="type"
-        class="type-button"
-        :class="{ active: selectedTypes.has(type) }"
-        :style="{
-          borderColor: typeColors[type],
-          background: selectedTypes.has(type) ? typeColors[type] : '#fff',
-          color: selectedTypes.has(type) ? '#fff' : '#222'
-        }"
-        @click="toggleType(type)"
-      >
-        {{ type }}
-      </button>
-    </div>
-
-    <div ref="mapRef" class="map" v-show="hasCoords"></div>
-
-    <div v-if="!hasCoords" class="card no-coords">
-      <p>이 권역에 좌표 정보가 없습니다. 지도를 보려면 src/data/sample-region.json의 각 장소에 lat/lng 값을 추가하세요.</p>
-      <div class="highlights" v-if="region?.highlights?.length">
-        <h3>장소 목록</h3>
-        <ul>
-          <li v-for="(h, idx) in region.highlights" :key="idx">
-            <strong>{{ typeof h === 'string' ? h : h.name }}</strong>
-            <span v-if="h.description"> — {{ h.description }}</span>
-          </li>
-        </ul>
+      <div>
+        <h2>{{ region?.name }}</h2>
+        <p>{{ region?.description }}</p>
       </div>
+      <div class="route-count-badge" v-if="routeStops.length">
+        {{ routeStops.length }}개 경로
+      </div>
+    </div>
+
+    <div class="route-layout">
+      <div class="map-panel">
+        <div class="type-filter-bar" v-if="hasCoords">
+          <button
+            class="type-button all"
+            :class="{ active: selectedTypes.size === typeKeys.length }"
+            @click="selectAllTypes"
+          >
+            전체
+          </button>
+
+          <button
+            v-for="type in typeKeys"
+            :key="type"
+            class="type-button"
+            :class="{ active: selectedTypes.has(type) }"
+            :style="{
+              borderColor: typeColors[type],
+              background: selectedTypes.has(type) ? typeColors[type] : '#fff',
+              color: selectedTypes.has(type) ? '#fff' : '#222'
+            }"
+            @click="toggleType(type)"
+          >
+            {{ type }}
+          </button>
+        </div>
+
+        <div ref="mapRef" class="map" v-show="hasCoords"></div>
+
+        <div v-if="!hasCoords" class="card no-coords">
+          <p>이 권역에 좌표 정보가 없습니다. 지도를 보려면 src/data/sample-region.json의 각 장소에 lat/lng 값을 추가하세요.</p>
+          <div class="highlights" v-if="region?.highlights?.length">
+            <h3>장소 목록</h3>
+            <ul>
+              <li v-for="(h, idx) in region.highlights" :key="idx">
+                <strong>{{ typeof h === 'string' ? h : h.name }}</strong>
+                <span v-if="h.description"> — {{ h.description }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <aside class="route-planner">
+        <div class="planner-header">
+          <div>
+            <h3>경로 짜기</h3>
+            <p>데이터 기반으로 방문 순서를 정리해보세요.</p>
+          </div>
+          <button class="planner-button" @click="seedRoute">추천 3곳</button>
+        </div>
+
+        <div class="route-list">
+          <div v-if="routeStops.length === 0" class="empty-state">
+            아직 선택한 장소가 없습니다.
+          </div>
+
+          <div v-for="(stop, index) in routeStops" :key="stop.id" class="route-step">
+            <div class="order-pill">{{ index + 1 }}</div>
+            <div class="route-details">
+              <strong>{{ stop.name }}</strong>
+              <span>{{ stop.description || '방문 예정 장소' }}</span>
+            </div>
+            <div class="route-actions">
+              <button @click="moveRouteItem(index, -1)" :disabled="index === 0">↑</button>
+              <button @click="moveRouteItem(index, 1)" :disabled="index === routeStops.length - 1">↓</button>
+              <button class="danger" @click="removeFromRoute(stop.id)">삭제</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="place-picker">
+          <h4>장소 추가</h4>
+
+          <input
+            v-model="searchQuery"
+            placeholder="장소 검색"
+            class="place-search"
+          />
+
+          <div class="category-tabs">
+            <button
+              class="category-chip"
+              :class="{ active: selectedCategory === '전체' }"
+              @click="selectedCategory = '전체'"
+            >
+              전체
+            </button>
+
+            <button
+              v-for="type in typeKeys"
+              :key="type"
+              class="category-chip"
+              :class="{ active: selectedCategory === type }"
+              @click="selectedCategory = type"
+            >
+              {{ type }}
+            </button>
+          </div>
+
+          <div class="place-list">
+            <button
+              v-for="place in filteredPlaces"
+              :key="place.id"
+              class="place-chip"
+              :class="{ selected: routeStops.some(stop => stop.id === place.id) }"
+              @click="addToRoute(place)"
+            >
+              {{ place.name }}
+            </button>
+          </div>
+        </div>
+
+        <div class="planner-footer">
+          <p>{{ routeSummary }}</p>
+        </div>
+      </aside>
     </div>
   </section>
 </template>
 
 <style scoped>
 .region-overview {
+  position: relative;
+}
+
+.region-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.route-count-badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.route-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.95fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.map-panel {
   position: relative;
 }
 
@@ -234,5 +429,197 @@ watch(
 
 .type-button.all {
   font-weight: 700;
+}
+
+.route-planner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.planner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.planner-header h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.planner-header p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.planner-button {
+  border: none;
+  background: #2563eb;
+  color: #fff;
+  padding: 8px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.route-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.empty-state {
+  padding: 12px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  color: #64748b;
+  text-align: center;
+  background: #fff;
+}
+
+.route-step {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+}
+
+.order-pill {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.route-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.route-details span {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.route-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.route-actions button {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.route-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.route-actions .danger {
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.place-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.place-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.category-chip {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.category-chip.active {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+.place-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.place-chip {
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.place-chip.selected {
+  background: #dbeafe;
+  border-color: #60a5fa;
+  color: #1d4ed8;
+}
+
+.planner-footer {
+  padding-top: 4px;
+  border-top: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 0.92rem;
+}
+
+@media (max-width: 900px) {
+  .route-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .route-planner {
+    position: static;
+  }
 }
 </style>
