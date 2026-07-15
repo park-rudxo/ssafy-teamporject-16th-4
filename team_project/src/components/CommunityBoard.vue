@@ -15,6 +15,13 @@ const editingId = ref(null)
 const searchQuery = ref('')
 const searchScope = ref('all')
 const showBookmarksOnly = ref(false)
+const sortMode = ref('latest') // 'latest' | 'likes' | 'views'
+const sortRequested = ref(false)
+
+function applySort() {
+  // toggle to make computed re-evaluate when user clicks "조회"
+  sortRequested.value = !sortRequested.value
+}
 
 const currentView = ref('list')
 const selectedPostId = ref(null)
@@ -41,8 +48,69 @@ const linkUrl = ref('')
 const linkText = ref('')
 const savedRange = ref(null)
 
+function getPostLink(post) {
+  if (!post) return window.location.href
+  const base = window.location.origin + window.location.pathname
+  return `${base}?post=${post.id}`
+}
+
+async function sharePost(post) {
+  if (!post) return
+  const link = getPostLink(post)
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: post.title,
+        text: (post.nickname || '익명'),
+        url: link
+      })
+      return
+    } catch (err) {
+      // 사용자가 공유를 취소했거나 실패하면 복사로 폴백
+    }
+  }
+
+  // 클립보드 복사 폴백
+  try {
+    await navigator.clipboard.writeText(link)
+    alert('게시글 링크가 클립보드에 복사되었습니다.')
+  } catch (err) {
+    // 구형 브라우저 폴백 (임시 input)
+    const input = document.createElement('input')
+    input.value = link
+    document.body.appendChild(input)
+    input.select()
+    document.execCommand('copy')
+    document.body.removeChild(input)
+    alert('게시글 링크가 복사되었습니다.')
+  }
+}
+
+function openPostFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    const pid = params.get('post')
+    if (pid) {
+      const idNum = Number(pid)
+      if (!Number.isNaN(idNum)) {
+        // posts 로드가 끝난 뒤 실행되어야 함
+        const found = posts.value.find(p => p.id === idNum)
+        if (found) {
+          selectedPostId.value = idNum
+          currentView.value = 'detail'
+        }
+      }
+    }
+  } catch (e) {
+    // noop
+  }
+}
+
+// onMounted에서 loadPosts() 호출 뒤 openPostFromUrl() 호출
 onMounted(() => {
   loadPosts()
+  openPostFromUrl()
 })
 
 function matchesSearch(post, query) {
@@ -80,6 +148,23 @@ const filteredPosts = computed(() => {
   return basePosts.filter(post => matchesSearch(post, query))
 })
 
+const displayedPosts = computed(() => {
+  void sortRequested.value // depend on manual trigger
+
+  const base = (showBookmarksOnly.value ? posts.value.filter(p => p.bookmarked) : posts.value)
+  const filtered = searchQuery.value.trim()
+    ? base.filter(p => matchesSearch(p, searchQuery.value.trim().toLowerCase()))
+    : base
+
+  if (sortMode.value === 'likes') {
+    return [...filtered].sort((a,b) => (b.likes || 0) - (a.likes || 0))
+  }
+  if (sortMode.value === 'views') {
+    return [...filtered].sort((a,b) => (b.views || 0) - (a.views || 0))
+  }
+  return [...filtered].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))
+})
+
 const searchedPosts = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
 
@@ -111,6 +196,9 @@ function loadPosts() {
     posts.value = savedPosts.map(post => ({
       bookmarked: false,
       nickname: '익명',
+      likes: 0,
+      liked: false,
+      views: 0,
       ...post
     }))
   } catch (error) {
@@ -410,6 +498,13 @@ function resetForm() {
 }
 
 function openPostDetail(post) {
+  // increment views once when opening detail
+  const target = posts.value.find(p => p.id === post.id)
+  if (target) {
+    target.views = (target.views || 0) + 1
+    savePosts()
+  }
+
   selectedPostId.value = post.id
   currentView.value = 'detail'
   closeDeleteModal()
@@ -517,12 +612,22 @@ function submitPost() {
       password,
       nickname,
       createdAt: new Date().toISOString(),
-      bookmarked: false
+      bookmarked: false,
+      likes: 0,
+      liked: false,
+      views: 0
     })
   }
 
   savePosts()
   openListView()
+}
+
+function likePost(post) {
+  if (!post || post.liked) return
+  post.likes = (post.likes || 0) + 1
+  post.liked = true
+  savePosts()
 }
 
 function startEdit(post) {
@@ -637,6 +742,14 @@ function toggleBookmark(post) {
         </select>
       </div>
 
+      <div class="sort-controls">
+        <select v-model="sortMode">
+          <option value="latest">최신순</option>
+          <option value="likes">추천순</option>
+          <option value="views">조회수순</option>
+        </select>
+      </div>
+
       <label class="bookmark-filter">
         <input
           v-model="showBookmarksOnly"
@@ -654,11 +767,11 @@ function toggleBookmark(post) {
       </button>
 
       <div
-        v-if="filteredPosts.length"
+        v-if="displayedPosts.length"
         class="post-list"
       >
         <div
-          v-for="post in filteredPosts"
+          v-for="post in displayedPosts"
           :key="post.id"
           class="post"
         >
@@ -678,23 +791,10 @@ function toggleBookmark(post) {
                 </span>
 
                 <small>
-                  {{ formatDate(post.createdAt) }}
+                  {{ formatDate(post.createdAt) }} · 조회 {{ post.views || 0 }} · 추천 {{ post.likes || 0 }}
                 </small>
               </div>
             </div>
-
-            <button
-              type="button"
-              class="bookmark-btn"
-              :aria-label="
-                post.bookmarked
-                  ? '북마크 해제'
-                  : '북마크 추가'
-              "
-              @click="toggleBookmark(post)"
-            >
-              {{ post.bookmarked ? '★' : '☆' }}
-            </button>
           </div>
         </div>
       </div>
@@ -712,6 +812,7 @@ function toggleBookmark(post) {
       v-else-if="currentView === 'detail'"
       class="detail-view"
     >
+
       <button
         type="button"
         class="btn-list"
@@ -734,29 +835,39 @@ function toggleBookmark(post) {
               </span>
 
               <small>
-                {{ formatDate(selectedPost.createdAt) }}
+                {{ formatDate(selectedPost.createdAt) }} · 조회 {{ selectedPost.views || 0 }} · 추천 {{ selectedPost.likes || 0 }}
               </small>
             </div>
           </div>
 
-          <button
-            type="button"
-            class="detail-bookmark-btn"
-            :aria-label="
-              selectedPost.bookmarked
-                ? '북마크 해제'
-                : '북마크 추가'
-            "
-            @click="toggleBookmark(selectedPost)"
-          >
-            {{ selectedPost.bookmarked ? '★' : '☆' }}
-          </button>
+          <div class="detail-actions-inline">
+            <button type="button" class="detail-share" @click="sharePost(selectedPost)">
+              🔗 <span>공유</span>
+            </button>
+
+            <button type="button" class="detail-bookmark" @click="toggleBookmark(selectedPost)">
+              <span>{{ selectedPost.bookmarked ? '★' : '☆' }}</span>
+              <span class="label-text">북마크</span>
+            </button>
+          </div>
         </div>
 
         <div
           class="content-body"
           v-html="selectedPost.content"
         ></div>
+
+        <!-- 본문 아래 중앙에 위치하도록 추가 -->
+        <div class="detail-like-wrapper">
+          <button
+            type="button"
+            class="detail-like-btn"
+            :disabled="selectedPost.liked"
+            @click="likePost(selectedPost)"
+          >
+            👍 추천 {{ selectedPost.likes || 0 }}
+          </button>
+        </div>
 
         <div class="actions">
           <button
@@ -860,8 +971,9 @@ function toggleBookmark(post) {
                 </span>
 
                 <small>
-                  {{ formatDate(post.createdAt) }}
+                  {{ formatDate(post.createdAt) }} · 조회 {{ post.views || 0 }} · 추천 {{ post.likes || 0 }}
                 </small>
+                
               </div>
             </div>
 
@@ -1386,10 +1498,10 @@ select:focus {
 .post-header {
   position: relative;
   display: flex;
-  align-items: flex-start;
+  align-items: center; /* 중앙 정렬로 통일 */
   justify-content: space-between;
-  min-height: 30px;
-  padding-right: 40px;
+  min-height: 40px;
+  padding-right: 100px; /* 오른쪽 버튼 2개 공간 확보 (필요시 조정) */
 }
 
 .post-title-btn {
@@ -1425,20 +1537,37 @@ select:focus {
   font-size: 12px;
 }
 
-.bookmark-btn {
+/* 공통 규칙으로 크기/정렬 통일 */
+.bookmark-btn,
+.share-btn {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 6px; /* 버튼 수직 위치 일치 */
   padding: 0;
   border: none;
   background: transparent;
-  color: #f4b400;
-  font-size: 22px;
-  transition: transform 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+  transition: transform 0.12s ease;
 }
 
-.bookmark-btn:hover {
-  transform: scale(1.15);
+/* 위치: 오른쪽 끝에 북마크, 그 왼쪽에 공유 */
+.bookmark-btn {
+  right: 8px;
+  color: #f4b400;
+}
+
+.share-btn {
+  right: 52px; /* 북마크 바로 왼쪽(간격 8px) */
+  color: #3b82f6;
+}
+
+.bookmark-btn:hover,
+.share-btn:hover {
+  transform: scale(1.12);
 }
 
 .detail-view,
@@ -1467,12 +1596,98 @@ select:focus {
   font-size: 21px;
 }
 
-.detail-bookmark-btn {
-  padding: 0;
-  border: none;
+.detail-actions-inline {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.detail-share,
+.detail-bookmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
   background: transparent;
+  font-size: 15px;
+  cursor: pointer;
+  color: #111827;
+}
+
+.detail-share {
+  color: #3b82f6;
+  border-color: rgba(59,130,246,0.08);
+  background: rgba(59,130,246,0.03);
+}
+
+.detail-bookmark {
   color: #f4b400;
-  font-size: 25px;
+  border-color: rgba(244,180,0,0.08);
+  background: rgba(244,180,0,0.03);
+}
+
+.detail-bookmark .label-text {
+  margin-left: 6px;
+  font-weight: 600;
+  color: inherit;
+}
+
+.detail-share:hover,
+.detail-bookmark:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.detail-share span,
+.detail-bookmark span {
+  font-weight: 600;
+}
+
+.detail-like-wrapper {
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+}
+
+.detail-like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid #dbdcdd8a;
+  background: #ffffff96;
+  color: #111827;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.detail-like-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+
+.detail-like-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .content-body {
