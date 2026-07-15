@@ -71,7 +71,6 @@ function toggleType(type) {
   updateMarkers()
 }
 
-// 전체 버튼: 모두 선택이면 전체 해제, 아니면 전체 선택
 function toggleAllTypes() {
   if (selectedTypes.value.size === typeKeys.length) {
     selectedTypes.value = new Set()
@@ -218,7 +217,6 @@ function seedRoute() {
 function togglePlace(item) {
   if (!item) return
 
-  // 사용자가 장소 누르면 항상 "내 경로" 보기 켜기
   showRouteOnly.value = true
 
   if (item.isCourse || (item.raw && Array.isArray(item.raw.stops) && item.raw.stops.length)) {
@@ -601,6 +599,7 @@ watch(
     </div>
 
     <div class="route-layout">
+      <!-- LEFT: Map + 장소추가(검색/카테고리/목록) -->
       <div class="map-panel">
         <div class="type-filter-bar" v-if="hasCoords || routeStops.length">
           <button
@@ -637,48 +636,17 @@ watch(
 
         <div ref="mapRef" class="map" v-show="hasCoords || routeStops.length"></div>
 
-        <div v-if="!hasCoords && routeStops.length === 0" class="card no-coords">
-          <p>이 권역에 좌표 정보가 없습니다. 지도를 보려면 src/data/sample-region.json의 각 장소에 lat/lng 값을 추가하세요.</p>
-          <div class="highlights" v-if="region?.highlights?.length">
-            <h3>장소 목록</h3>
-            <ul>
-              <li
-                v-for="(h, idx) in region.highlights"
-                :key="idx"
-                @click="() => emit('selectCourse', h)"
-                style="cursor: pointer;"
-              >
-                <strong>{{ typeof h === 'string' ? h : h.name }}</strong>
-                <span v-if="h.description"> — {{ h.description }}</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
+        <!-- 장소추가: 지도 바로 아래 (검색창 + 카테고리 + 목록 + 페이징) -->
+        <div class="add-place card">
+          <h4>장소 추가</h4>
 
-      <aside class="route-planner">
-        <div class="planner-header">
-          <div>
-            <h3>경로 짜기</h3>
-            <p>데이터 기반으로 방문 순서를 정리해보세요.</p>
-          </div>
-          <div style="display:flex; gap:8px; align-items:center;">
-            <button class="planner-button" @click="seedRoute">추천 3곳</button>
-            <button class="planner-button" @click="openSavedPanel">저장한 코스</button>
-          </div>
-        </div>
-
-        <div class="picker-grid">
-          <div class="place-panel">
-            <h4>장소 추가</h4>
-
+          <div class="search-controls">
             <input
               v-model="searchQuery"
               placeholder="장소 검색"
               class="place-search"
             />
-
-            <div class="category-tabs">
+            <div class="category-row">
               <button
                 class="category-chip"
                 :class="{ active: selectedCategory === '전체' }"
@@ -697,18 +665,18 @@ watch(
                 {{ type }}
               </button>
             </div>
+          </div>
 
-            <div class="place-list">
-              <button
-                v-for="place in paginatedPlaces"
-                :key="place.id"
-                class="place-chip"
-                :class="{ selected: routeStops.some(stop => stop.id === place.id), course: place.isCourse }"
-                @click="togglePlace(place)"
-              >
-                {{ place.name }} <span v-if="place.isCourse"> (코스)</span>
-              </button>
-            </div>
+          <div class="place-list panel-list">
+            <button
+              v-for="place in paginatedPlaces"
+              :key="place.id"
+              class="place-chip"
+              :class="{ selected: routeStops.some(stop => stop.id === place.id), course: place.isCourse }"
+              @click="togglePlace(place)"
+            >
+              {{ place.name }} <span v-if="place.isCourse"> (코스)</span>
+            </button>
 
             <div class="pagination" v-if="totalPages > 1">
               <button @click="goPrevPage" :disabled="currentPage === 1">◀</button>
@@ -716,33 +684,47 @@ watch(
               <button @click="goNextPage" :disabled="currentPage === totalPages">▶</button>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div class="course-panel">
-            <div class="route-list">
-              <div v-if="routeStops.length === 0" class="empty-state">
-                아직 선택한 장소가 없습니다.
-              </div>
+      <!-- RIGHT: 경로 버튼들 + 내가 짠 코스 목록 복구 -->
+      <aside class="route-planner buttons-and-list">
+        <div class="planner-header vertical">
+          <div>
+            <h3>경로 짜기</h3>
+            <p class="muted">버튼으로 경로를 조작하세요.</p>
+          </div>
 
-              <div v-for="(stop, index) in routeStops" :key="stop.id" class="route-step">
-                <div class="order-pill">{{ index + 1 }}</div>
-                <div class="route-details">
-                  <strong>{{ stop.name }}</strong>
-                  <span>{{ stop.description || '방문 예정 장소' }}</span>
-                </div>
-                <div class="route-actions">
-                  <button @click="moveRouteItem(index, -1)" :disabled="index === 0">↑</button>
-                  <button @click="moveRouteItem(index, 1)" :disabled="index === routeStops.length - 1">↓</button>
-                  <button class="danger" @click="removeFromRoute(stop.id)">삭제</button>
-                </div>
-              </div>
+          <div class="planner-buttons">
+            <button class="planner-button" @click="seedRoute">추천 3곳</button>
+            <button class="planner-button" @click="openSavedPanel">저장한 코스</button>
+            <button class="save-course-btn" @click="openSaveModal">코스 저장</button>
+          </div>
+        </div>
+
+        <!-- 복구: 내가 짠 코스 목록 -->
+        <div class="course-panel">
+          <div class="route-list">
+            <div v-if="routeStops.length === 0" class="empty-state">
+              아직 선택한 장소가 없습니다.
             </div>
 
-            <div class="planner-footer">
-              <p>{{ routeSummary }}</p>
-              <div class="planner-actions">
-                <button class="save-course-btn" @click="openSaveModal">코스 저장</button>
+            <div v-for="(stop, index) in routeStops" :key="stop.id" class="route-step">
+              <div class="order-pill">{{ index + 1 }}</div>
+              <div class="route-details">
+                <strong>{{ stop.name }}</strong>
+                <span>{{ stop.description || '방문 예정 장소' }}</span>
+              </div>
+              <div class="route-actions">
+                <button @click="moveRouteItem(index, -1)" :disabled="index === 0">↑</button>
+                <button @click="moveRouteItem(index, 1)" :disabled="index === routeStops.length - 1">↓</button>
+                <button class="danger" @click="removeFromRoute(stop.id)">삭제</button>
               </div>
             </div>
+          </div>
+
+          <div class="planner-footer">
+            <p>{{ routeSummary }}</p>
           </div>
         </div>
       </aside>
@@ -791,51 +773,42 @@ watch(
 <style scoped>
 .region-overview { position: relative; }
 
-/* 기존 스타일 유지 + 추가 레이아웃 스타일 */
 .route-layout {
   display: flex;
   gap: 16px;
   align-items: flex-start;
 }
 
-/* 맵 패널은 좌측에, 플래너는 우측에 고정 너비 */
+/* 좌측: 지도 패널 (지도 + 장소추가) */
 .map-panel {
   flex: 1 1 0;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
-.route-planner {
-  width: 420px;
-  box-sizing: border-box;
+.map {
+  width: 100%;
+  height: 520px;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-/* picker-grid: 장소 패널(좌) / 코스 패널(우) */
-.picker-grid {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 12px;
+/* 장소추가 블록: 지도 바로 아래에 모든 검색/카테고리/목록 포함 */
+.add-place {
   margin-top: 12px;
-}
-.place-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.course-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  padding: 12px;
 }
 
-/* 장소 리스트 스크롤 영역 한정 (페이지네이션과 결합) */
-.place-list {
+/* 장소 목록 스크롤 제약 */
+.panel-list {
   display: grid;
   gap: 8px;
-  max-height: 280px;
+  max-height: 260px;
   overflow: auto;
   padding-right: 6px;
 }
 
-/* 장소칩 */
+/* 장소칩 전체 너비 */
 .place-chip {
   text-align: left;
   padding: 8px;
@@ -843,42 +816,91 @@ watch(
   border: 1px solid #e6e6e6;
   background: #fff;
   cursor: pointer;
+  width: 100%;
 }
-.place-chip.course {
-  border-style: dashed;
-}
-.place-chip.selected {
-  background: linear-gradient(180deg, #e6f7ff, #ffffff);
-  border-color: #60a5fa;
+.place-chip.course { border-style: dashed; }
+.place-chip.selected { background: linear-gradient(180deg,#e6f7ff,#fff); border-color:#60a5fa; }
+
+/* 우측: 버튼 + 내가 짠 코스 목록 */
+.route-planner.buttons-and-list {
+  width: 320px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
 }
 
-/* 코스 목록 스크롤 */
+/* 헤더 + 버튼 정렬 (세로) */
+.planner-header.vertical {
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  align-items:flex-start;
+}
+.planner-buttons {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  width:100%;
+}
+.planner-button {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  width:100%;
+  text-align:left;
+}
+.save-course-btn {
+  background: #10b981;
+  color: #fff;
+  border: none;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  width:100%;
+}
+
+/* 코스 목록 */
+.course-panel {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
 .route-list {
-  max-height: 360px;
+  max-height: 300px;
   overflow: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-
-/* pagination */
-.pagination {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: center;
-  margin-top: 8px;
+.order-pill {
+  width: 30px;
+  height: 30px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#2563eb;
+  color:white;
+  font-weight:700;
+}
+.route-step {
+  display:flex;
+  gap:8px;
+  align-items:center;
+  padding:8px;
+  border-radius:8px;
+  border:1px solid #f1f5f9;
 }
 
-/* 기타 스타일은 기존에서 재사용 */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  background: rgba(0,0,0,0.35);
-  z-index: 1200;
-}
+/* 기타 작은 보정 */
+.search-controls { display:flex; flex-direction:column; gap:8px; }
+.place-search { padding:8px; border-radius:8px; border:1px solid #e6e6e6; width:100%; box-sizing:border-box; }
+.category-row { display:flex; gap:8px; flex-wrap:wrap; }
+.pagination { display:flex; gap:8px; align-items:center; justify-content:center; margin-top:8px; }
 
-/* 보존: 기존 모달 / 저장 스타일 등 (중복 생략 가능) */
+.modal-backdrop { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,0.35); z-index: 1200; }
 </style>
