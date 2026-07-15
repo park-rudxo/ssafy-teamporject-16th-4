@@ -25,7 +25,7 @@ const props = defineProps({
 const mapRef = ref(null)
 let map = null
 let markersLayer = null
-const boundsInitialized = false
+let boundsInitialized = false
 const hasCoords = ref(false)
 
 const typeKeys = Object.keys(typeColors)
@@ -71,7 +71,7 @@ function toggleType(type) {
   updateMarkers()
 }
 
-// 전체 버튼을 토글: 모두 선택 -> 모두 해제, 아니면 모두 선택
+// 전체 버튼: 모두 선택이면 전체 해제, 아니면 전체 선택
 function toggleAllTypes() {
   if (selectedTypes.value.size === typeKeys.length) {
     selectedTypes.value = new Set()
@@ -165,7 +165,6 @@ const filteredPlaces = computed(() => {
   })
 })
 
-// pagination helpers
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredPlaces.value.length / pageSize.value)))
 const paginatedPlaces = computed(() => {
   const p = Math.max(1, Math.min(currentPage.value, totalPages.value))
@@ -218,6 +217,9 @@ function seedRoute() {
 
 function togglePlace(item) {
   if (!item) return
+
+  // 사용자가 장소 누르면 항상 "내 경로" 보기 켜기
+  showRouteOnly.value = true
 
   if (item.isCourse || (item.raw && Array.isArray(item.raw.stops) && item.raw.stops.length)) {
     const stops = item.stops ?? (item.raw?.stops ?? [])
@@ -537,7 +539,13 @@ function updateMarkers() {
 
     if (!boundsInitialized && visiblePoints.length > 0) {
       map.setView([37.5665, 126.9780], 11)
+      boundsInitialized = true
     }
+  }
+
+  if (!boundsInitialized && routePoints.length > 0 && showRouteOnly.value) {
+    map.setView([37.5665, 126.9780], 11)
+    boundsInitialized = true
   }
 }
 
@@ -557,6 +565,7 @@ watch(
   () => props.region,
   () => {
     routeStops.value = []
+    boundsInitialized = false
     updateMarkers()
     setTimeout(() => map && map.invalidateSize && map.invalidateSize(), 200)
   },
