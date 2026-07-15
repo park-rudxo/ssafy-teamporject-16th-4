@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { sendChatMessage } from '../services/chatApi'
+import { extractRelevantCommunityPosts } from '../services/communityChatContext'
 
 const messages = ref([
   { role: 'assistant', content: '안녕하세요! 지역 정보나 커뮤니티 내용을 도와드릴게요.' }
@@ -33,6 +34,19 @@ function buildHistory() {
     .map((msg) => ({ role: msg.role, content: msg.content }))
 }
 
+function loadCommunityPostsContext(text) {
+  try {
+    const raw = localStorage.getItem('localhub-posts')
+    if (!raw) return []
+
+    const parsedPosts = JSON.parse(raw)
+    return extractRelevantCommunityPosts(text, parsedPosts)
+  } catch (error) {
+    console.error('커뮤니티 글을 불러오지 못했습니다.', error)
+    return []
+  }
+}
+
 async function sendMessage() {
   const text = input.value.trim()
   if (!text || isLoading.value) return
@@ -43,7 +57,8 @@ async function sendMessage() {
   isLoading.value = true
 
   try {
-    const answer = await sendChatMessage(text, buildHistory())
+    const communityPosts = loadCommunityPostsContext(text)
+    const answer = await sendChatMessage(text, buildHistory(), communityPosts)
     messages.value.push({ role: 'assistant', content: answer })
   } catch (error) {
     const fallbackReply = buildFallbackReply(text)
