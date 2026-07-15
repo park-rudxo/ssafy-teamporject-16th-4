@@ -901,6 +901,7 @@ input:focus, select:focus {
 .detail-post { padding:18px; border:1px solid #eee; border-radius:6px; background:#fafafa; }
 .detail-title-area { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
 .detail-title-area h4 { margin:0; color:#333; font-size:21px; }
+.detail-title-area .category {font-size: 12px; color: #666; font-weight: 600; margin-left: 8px;}
 .detail-actions-inline { display:inline-flex; gap:10px; align-items:center; }
 .detail-share, .detail-bookmark { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid transparent; border-radius:6px; background:transparent; font-size:15px; cursor:pointer; color:#111827; }
 .detail-share { color:#3b82f6; border-color:rgba(59,130,246,0.08); background:rgba(59,130,246,0.03); }
@@ -909,6 +910,7 @@ input:focus, select:focus {
 .detail-like-btn { display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:8px; border:1px solid #dbdcdd8a; background:#ffffff96; color:#111827; font-weight:700; font-size:15px; cursor:pointer; transition:transform .12s, box-shadow .12s; }
 .detail-like-btn:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,0.08); }
 .detail-like-btn:disabled { opacity:0.6; cursor:default; transform:none; box-shadow:none; }
+
 
 .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 .content-body { margin-top:18px; color:#444; line-height:1.7; overflow-wrap:anywhere; }
