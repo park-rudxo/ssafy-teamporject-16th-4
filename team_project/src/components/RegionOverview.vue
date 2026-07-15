@@ -6,13 +6,13 @@ import 'leaflet/dist/leaflet.css'
 const emit = defineEmits(['selectCourse'])
 
 const typeColors = {
-  관광지: '#1f77b4',
-  레포츠: '#ff7f0e',
-  여행코스: '#2ca02c',
-  축제공연행사: '#d62728',
-  숙박: '#9467bd',
-  쇼핑: '#8c564b',
-  문화시설: '#17becf'
+  관광지: '#3b82f6',     // 밝은 블루
+  레포츠: '#10b981',     // 에메랄드
+  여행코스: '#8b5cf6',   // 퍼플
+  축제공연행사: '#f43f5e', // 로즈
+  숙박: '#f59e0b',       // 앰버
+  쇼핑: '#ec4899',       // 핑크
+  문화시설: '#06b6d4'     // 시안
 }
 
 const props = defineProps({
@@ -36,7 +36,7 @@ const searchQuery = ref('')
 const showRouteOnly = ref(false)
 
 // pagination
-const pageSize = ref(8)
+const pageSize = ref(6) // 그리드 레이아웃에 맞춰 조금 더 직관적인 개수로 변경
 const currentPage = ref(1)
 
 const saveModalOpen = ref(false)
@@ -59,7 +59,7 @@ function normalizeType(type) {
 }
 
 function getColorForType(type) {
-  return typeColors[type] ?? '#222'
+  return typeColors[type] ?? '#64748b'
 }
 
 function toggleType(type) {
@@ -391,9 +391,17 @@ function initMap() {
   if (!mapRef.value) return
   if (map) map.remove()
 
-  map = L.map(mapRef.value, { preferCanvas: true }).setView([37.5665, 126.9780], 11)
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
+  map = L.map(mapRef.value, { 
+    zoomControl: false, // 커스텀 줌 컨트롤 배치를 위해 해제
+    preferCanvas: true 
+  }).setView([37.5665, 126.9780], 11)
+  
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+  }).addTo(map)
+
+  L.control.zoom({
+    position: 'bottomright'
   }).addTo(map)
 
   markersLayer = L.layerGroup().addTo(map)
@@ -401,26 +409,49 @@ function initMap() {
   setTimeout(() => map.invalidateSize && map.invalidateSize(), 200)
 }
 
-function createRouteMarkerIcon(index) {
+function createRouteMarkerIcon(index, color = '#2563eb') {
+  const html = `
+    <div class="route-step-badge" style="border: 2.5px solid ${color}; color: ${color};">
+      ${index + 1}
+    </div>
+  `
   return L.divIcon({
-    html: `<div class="route-step-badge">${index + 1}</div>`,
+    html,
     className: '',
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
     popupAnchor: [0, -10]
   })
 }
 
+function createBadgeMarker(point, index) {
+  const color = getColorForType(point.type)
+  const badge = L.marker([point.lat, point.lng], {
+    icon: createRouteMarkerIcon(index, color),
+    interactive: false
+  })
+
+  badge.bindTooltip(`${index + 1}. ${point.name}`, {
+    permanent: false,
+    sticky: true
+  })
+
+  return badge
+}
+
 function createMarker(point, index = null, routeMode = false) {
   const popupHtml = `
-    <strong>${point.name}</strong><br/>
-    ${point.type ? `<em>${point.type}</em><br/>` : ''}
-    ${point.description || ''}
+    <div class="map-popup-card">
+      <span class="popup-tag" style="background: ${getColorForType(point.type)}">${point.type || '장소'}</span>
+      <strong>${point.name}</strong>
+      <p>${point.description || '상세 정보가 없습니다.'}</p>
+    </div>
   `
 
   if (routeMode) {
+    const color = getColorForType(point.type)
     const marker = L.marker([point.lat, point.lng], {
-      icon: createRouteMarkerIcon(index ?? 0)
+      icon: createRouteMarkerIcon(index ?? 0, color)
     }).bindPopup(popupHtml)
 
     marker.bindTooltip(`${index + 1}. ${point.name}`, {
@@ -431,10 +462,10 @@ function createMarker(point, index = null, routeMode = false) {
   }
 
   const marker = L.circleMarker([point.lat, point.lng], {
-    radius: 8,
+    radius: 9,
     fillColor: getColorForType(point.type),
-    color: '#222',
-    weight: 1,
+    color: '#ffffff',
+    weight: 2,
     opacity: 1,
     fillOpacity: 0.95
   }).bindPopup(popupHtml)
@@ -448,42 +479,15 @@ function createRoutePolyline(routePoints) {
   const latlngs = routePoints.map(point => [point.lat, point.lng])
 
   const polyline = L.polyline(latlngs, {
-    color: '#2563eb',
+    color: '#3b82f6',
     weight: 4,
-    opacity: 0.9,
+    opacity: 0.8,
+    dashArray: '5, 8', // 에어비앤비/트리플 스타일 점선
     lineCap: 'round',
     lineJoin: 'round'
   })
 
-  const arrowLayers = []
-  for (let i = 0; i < latlngs.length - 1; i++) {
-    const [startLat, startLng] = latlngs[i]
-    const [endLat, endLng] = latlngs[i + 1]
-
-    const midLat = (startLat + endLat) / 2
-    const midLng = (startLng + endLng) / 2
-
-    const dx = endLat - startLat
-    const dy = endLng - startLng
-    const length = Math.hypot(dx, dy) || 0.0001
-
-    const arrowLength = Math.max(0.00025, length * 0.08)
-
-    const arrowStartLat = midLat - (dx / length) * (arrowLength / 2)
-    const arrowStartLng = midLng - (dy / length) * (arrowLength / 2)
-    const arrowEndLat = midLat + (dx / length) * (arrowLength / 2)
-    const arrowEndLng = midLng + (dy / length) * (arrowLength / 2)
-
-    arrowLayers.push(
-      L.polyline([[arrowStartLat, arrowStartLng], [arrowEndLat, arrowEndLng]], {
-        color: '#0f766e',
-        weight: 3,
-        opacity: 1
-      })
-    )
-  }
-
-  return { polyline, arrowLayers }
+  return { polyline, arrowLayers: [] }
 }
 
 function updateMarkers() {
@@ -524,12 +528,12 @@ function updateMarkers() {
       const routeLine = createRoutePolyline(routePoints)
       if (routeLine) {
         markersLayer.addLayer(routeLine.polyline)
-        routeLine.arrowLayers.forEach(layer => markersLayer.addLayer(layer))
       }
     }
 
     routePoints.forEach((point, index) => {
-      markersLayer.addLayer(createMarker(point, index, true))
+      markersLayer.addLayer(createMarker(point))
+      markersLayer.addLayer(createBadgeMarker(point, index))
     })
   } else {
     const visiblePoints = allPoints.filter(p => selectedTypes.value.has(p.type))
@@ -587,320 +591,747 @@ watch(
 </script>
 
 <template>
-  <section class="card region-overview">
-    <div class="region-header">
-      <div>
-        <h2>{{ region?.name }}</h2>
-        <p>{{ region?.description }}</p>
+  <section class="region-overview">
+    <!-- 상단: 에어비앤비 스타일 헤더바 -->
+    <header class="tab-header">
+      <div class="header-titles">
+        <h2>{{ region?.name || '서울 명소 탐색' }}</h2>
+        <p class="subtitle">{{ region?.description || '가장 트렌디한 서울의 플레이스를 맞춤형 코스로 설계하세요.' }}</p>
       </div>
-      <div class="route-count-badge" v-if="routeStops.length">
-        {{ routeStops.length }}개 경로
+      <div class="header-actions">
+        <button class="btn-action primary" @click="seedRoute">⚡ 추천 코스 자동 생성</button>
+        <button class="btn-action secondary" @click="openSavedPanel">📁 내 저장 목록</button>
+        <button class="btn-action success" @click="openSaveModal" :disabled="!routeStops.length">💾 현재 코스 저장</button>
       </div>
-    </div>
+    </header>
 
-    <div class="route-layout">
-      <!-- LEFT: Map + 장소추가(검색/카테고리/목록) -->
-      <div class="map-panel">
-        <div class="type-filter-bar" v-if="hasCoords || routeStops.length">
-          <button
-            class="type-button all"
+    <div class="trip-workspace">
+      <!-- 1. 좌측: 장소 탐색 및 경로 편집 패널 (Scrollable) -->
+      <aside class="sidebar-panel">
+        
+        <!-- 검색 및 카테고리 필터링 영역 -->
+        <div class="filter-section card">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input
+              v-model="searchQuery"
+              placeholder="장소를 검색해보세요..."
+              class="styled-search-input"
+            />
+          </div>
+          
+          <div class="category-scroll-container">
+            <button
+              class="category-tag-chip"
+              :class="{ active: selectedCategory === '전체' }"
+              @click="selectedCategory = '전체'; currentPage = 1"
+            >
+              전체
+            </button>
+            <button
+              v-for="type in typeKeys"
+              :key="type"
+              class="category-tag-chip"
+              :class="{ active: selectedCategory === type }"
+              :style="{ 
+                borderColor: selectedCategory === type ? typeColors[type] : '#e2e8f0',
+                background: selectedCategory === type ? typeColors[type] : 'transparent',
+                color: selectedCategory === type ? '#ffffff' : '#475569'
+              }"
+              @click="() => { selectedCategory = type; currentPage = 1 }"
+            >
+              {{ type }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 트리플 스타일 타임라인 경로 짜기 영역 -->
+        <div class="timeline-planner card">
+          <div class="section-title-row">
+            <h3>나의 커스텀 여행 동선</h3>
+            <span class="badge-count" v-if="routeStops.length">{{ routeStops.length }}개 선정</span>
+          </div>
+
+          <div v-if="routeStops.length === 0" class="empty-timeline">
+            <div class="empty-icon">📍</div>
+            <p>아래 목록에서 원하는 장소를 클릭해 동선에 추가해보세요!</p>
+          </div>
+
+          <!-- 세로 형태의 유려한 타임라인 -->
+          <div v-else class="timeline-container">
+            <div v-for="(stop, index) in routeStops" :key="stop.id" class="timeline-item">
+              <div class="timeline-line" v-if="index !== routeStops.length - 1"></div>
+              
+              <div class="timeline-node" :style="{ backgroundColor: getColorForType(stop.type) }">
+                {{ index + 1 }}
+              </div>
+              
+              <div class="timeline-content">
+                <div class="timeline-info">
+                  <h4>{{ stop.name }}</h4>
+                  <p class="desc">{{ stop.description || '등록된 설명이 없습니다.' }}</p>
+                </div>
+                <div class="timeline-controls">
+                  <button class="btn-micro" @click="moveRouteItem(index, -1)" :disabled="index === 0">▲</button>
+                  <button class="btn-micro" @click="moveRouteItem(index, 1)" :disabled="index === routeStops.length - 1">▼</button>
+                  <button class="btn-micro danger" @click="removeFromRoute(stop.id)">✕</button>
+                </div>
+              </div>
+            </div>
+            
+            <div class="route-summary-bar">
+              <span class="summary-label">요약 루트:</span>
+              <p class="summary-text">{{ routeSummary }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 탐색 가능한 장소 목록 카드 영역 -->
+        <div class="place-explorer card">
+          <div class="explorer-header">
+            <h3>방문 가능한 명소</h3>
+            <div class="map-view-toggles">
+              <button 
+                class="view-toggle-btn" 
+                :class="{ active: !showRouteOnly }" 
+                @click="showRouteOnly = false"
+              >
+                전체보기
+              </button>
+              <button 
+                class="view-toggle-btn" 
+                :class="{ active: showRouteOnly }" 
+                @click="showRouteOnly = true"
+              >
+                경로만
+              </button>
+            </div>
+          </div>
+
+          <div class="modern-place-grid">
+            <div
+              v-for="place in paginatedPlaces"
+              :key="place.id"
+              class="modern-place-card"
+              :class="{ 
+                'selected': routeStops.some(stop => stop.id === place.id),
+                'course-type': place.isCourse 
+              }"
+              @click="togglePlace(place)"
+            >
+              <div class="card-indicator" :style="{ background: getColorForType(place.type) }"></div>
+              <div class="card-details">
+                <div class="card-meta">
+                  <span class="place-type-label" :style="{ color: getColorForType(place.type) }">
+                    {{ place.type || '관광지' }}
+                  </span>
+                  <span v-if="place.isCourse" class="course-badge">추천코스</span>
+                </div>
+                <h4>{{ place.name }}</h4>
+                <p class="place-desc">{{ place.description }}</p>
+              </div>
+              <div class="action-check-box">
+                <span v-if="routeStops.some(stop => stop.id === place.id)" class="check-icon">✓</span>
+                <span v-else class="plus-icon">+</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 고급화된 페이지네이션 -->
+          <div class="modern-pagination" v-if="totalPages > 1">
+            <button class="btn-page" @click="goPrevPage" :disabled="currentPage === 1">이전</button>
+            <span class="page-indicator"><strong>{{ currentPage }}</strong> / {{ totalPages }}</span>
+            <button class="btn-page" @click="goNextPage" :disabled="currentPage === totalPages">다음</button>
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- 2. 우측: 대화면 인터랙티브 지도 (Sticky-Map) -->
+      <main class="map-container-wrap">
+        <!-- 지도 상단 플로팅 지도 레이어 토글 칩 -->
+        <div class="map-floating-bar">
+          <button 
+            class="map-chip" 
             :class="{ active: selectedTypes.size === typeKeys.length && !showRouteOnly }"
             @click="toggleAllTypes"
           >
-            전체
+            🧭 전체 타입 필터
           </button>
-
           <button
             v-for="type in typeKeys"
             :key="type"
-            class="type-button"
+            class="map-chip"
             :class="{ active: selectedTypes.has(type) && !showRouteOnly }"
             :style="{
-              borderColor: typeColors[type],
-              background: selectedTypes.has(type) && !showRouteOnly ? typeColors[type] : '#fff',
-              color: selectedTypes.has(type) && !showRouteOnly ? '#fff' : '#222'
+              borderLeft: `4px solid ${typeColors[type]}`
             }"
             @click="toggleType(type)"
           >
             {{ type }}
           </button>
-
-          <button
-            class="type-button route-toggle"
-            :class="{ active: showRouteOnly }"
-            @click="toggleRouteOnly"
-          >
-            내 경로
-          </button>
         </div>
 
-        <div ref="mapRef" class="map" v-show="hasCoords || routeStops.length"></div>
+        <div ref="mapRef" class="modern-leaflet-map"></div>
+      </main>
+    </div>
 
-        <!-- 장소추가: 지도 바로 아래 (검색창 + 카테고리 + 목록 + 페이징) -->
-        <div class="add-place card">
-          <h4>장소 추가</h4>
-
-          <div class="search-controls">
-            <input
-              v-model="searchQuery"
-              placeholder="장소 검색"
-              class="place-search"
-            />
-            <div class="category-row">
-              <button
-                class="category-chip"
-                :class="{ active: selectedCategory === '전체' }"
-                @click="selectedCategory = '전체'; currentPage = 1"
-              >
-                전체
-              </button>
-
-              <button
-                v-for="type in typeKeys"
-                :key="type"
-                class="category-chip"
-                :class="{ active: selectedCategory === type }"
-                @click="() => { selectedCategory = type; currentPage = 1 }"
-              >
-                {{ type }}
-              </button>
-            </div>
+    <!-- 팝업 모달: 내 코스 저장 -->
+    <transition name="modal-fade">
+      <div v-if="saveModalOpen" class="modal-overlay" @click.self="saveModalOpen = false">
+        <div class="modern-modal card">
+          <div class="modal-header">
+            <h3>🗺️ 여행 코스 저장하기</h3>
+            <button class="close-modal-btn" @click="saveModalOpen = false">✕</button>
           </div>
-
-          <div class="place-list panel-list">
-            <button
-              v-for="place in paginatedPlaces"
-              :key="place.id"
-              class="place-chip"
-              :class="{ selected: routeStops.some(stop => stop.id === place.id), course: place.isCourse }"
-              @click="togglePlace(place)"
-            >
-              {{ place.name }} <span v-if="place.isCourse"> (코스)</span>
+          <div class="modal-body">
+            <label>코스 이름</label>
+            <input v-model="courseName" placeholder="예: 우정 가득 서울 당일치기 코스" class="modal-input" />
+            <label>메모 및 설명</label>
+            <textarea v-model="courseDesc" placeholder="이 코스의 주요 팁을 기록해보세요." class="modal-textarea"></textarea>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-modal cancel" @click="saveModalOpen = false">취소</button>
+            <button class="btn-modal confirm" @click="saveCourse" :disabled="isSaving">
+              {{ isSaving ? '저장하는 중...' : '저장 완료' }}
             </button>
-
-            <div class="pagination" v-if="totalPages > 1">
-              <button @click="goPrevPage" :disabled="currentPage === 1">◀</button>
-              <span>{{ currentPage }} / {{ totalPages }}</span>
-              <button @click="goNextPage" :disabled="currentPage === totalPages">▶</button>
-            </div>
           </div>
         </div>
       </div>
+    </transition>
 
-      <!-- RIGHT: 경로 버튼들 + 내가 짠 코스 목록 복구 -->
-      <aside class="route-planner buttons-and-list">
-        <div class="planner-header vertical">
-          <div>
-            <h3>경로 짜기</h3>
-            <p class="muted">버튼으로 경로를 조작하세요.</p>
+    <!-- 팝업 모달: 저장된 내 코스 목록 불러오기 -->
+    <transition name="modal-fade">
+      <div v-if="savedPanelOpen" class="modal-overlay" @click.self="closeSavedPanel">
+        <div class="modern-modal large card">
+          <div class="modal-header">
+            <h3>📁 저장된 내 코스</h3>
+            <button class="close-modal-btn" @click="closeSavedPanel">✕</button>
           </div>
-
-          <div class="planner-buttons">
-            <button class="planner-button" @click="seedRoute">추천 3곳</button>
-            <button class="planner-button" @click="openSavedPanel">저장한 코스</button>
-            <button class="save-course-btn" @click="openSaveModal">코스 저장</button>
-          </div>
-        </div>
-
-        <!-- 복구: 내가 짠 코스 목록 -->
-        <div class="course-panel">
-          <div class="route-list">
-            <div v-if="routeStops.length === 0" class="empty-state">
-              아직 선택한 장소가 없습니다.
+          <div class="modal-body scrollable">
+            <div v-if="!savedCourses.length" class="empty-state">
+              <span class="empty-icon">📁</span>
+              <p>아직 저장한 나만의 코스가 없습니다.</p>
             </div>
-
-            <div v-for="(stop, index) in routeStops" :key="stop.id" class="route-step">
-              <div class="order-pill">{{ index + 1 }}</div>
-              <div class="route-details">
-                <strong>{{ stop.name }}</strong>
-                <span>{{ stop.description || '방문 예정 장소' }}</span>
-              </div>
-              <div class="route-actions">
-                <button @click="moveRouteItem(index, -1)" :disabled="index === 0">↑</button>
-                <button @click="moveRouteItem(index, 1)" :disabled="index === routeStops.length - 1">↓</button>
-                <button class="danger" @click="removeFromRoute(stop.id)">삭제</button>
-              </div>
-            </div>
+            
+            <ul class="saved-list-modern" v-else>
+              <li v-for="c in savedCourses" :key="c.id" class="saved-course-card">
+                <div class="course-meta">
+                  <h4>{{ c.name }}</h4>
+                  <p class="description">{{ c.description || '상세 내용 없음' }}</p>
+                  <small class="date">📅 {{ new Date(c.createdAt).toLocaleDateString() }}</small>
+                </div>
+                <div class="course-actions-group">
+                  <button class="btn-action-small import-replace" @click="loadSavedCourse(c, true)">덮어쓰기</button>
+                  <button class="btn-action-small import-add" @click="loadSavedCourse(c, false)">추가하기</button>
+                  <button class="btn-action-small delete danger" @click="deleteSavedCourse(c.id)">삭제</button>
+                </div>
+              </li>
+            </ul>
           </div>
-
-          <div class="planner-footer">
-            <p>{{ routeSummary }}</p>
+          <div class="modal-footer">
+            <button class="btn-modal cancel" @click="closeSavedPanel">닫기</button>
           </div>
-        </div>
-      </aside>
-    </div>
-
-    <!-- 저장 모달 -->
-    <div v-if="saveModalOpen" class="modal-backdrop" @click.self="saveModalOpen = false">
-      <div class="modal">
-        <h4>코스 저장</h4>
-        <input v-model="courseName" placeholder="코스 이름 (선택)" />
-        <textarea v-model="courseDesc" placeholder="코스 설명 (선택)"></textarea>
-        <div class="modal-actions">
-          <button @click="saveModalOpen = false">취소</button>
-          <button class="primary" @click="saveCourse" :disabled="isSaving">{{ isSaving ? '저장중...' : '저장' }}</button>
         </div>
       </div>
-    </div>
-
-    <!-- 저장된 코스 패널 -->
-    <div v-if="savedPanelOpen" class="modal-backdrop" @click.self="closeSavedPanel">
-      <div class="modal large">
-        <h4>저장한 내 코스</h4>
-        <div v-if="!savedCourses.length" class="empty-state">저장된 코스가 없습니다.</div>
-        <ul class="saved-list">
-          <li v-for="c in savedCourses" :key="c.id" class="saved-item">
-            <div class="saved-meta">
-              <strong>{{ c.name }}</strong>
-              <small>{{ c.description }}</small>
-              <div class="saved-created">{{ new Date(c.createdAt).toLocaleString() }}</div>
-            </div>
-            <div class="saved-actions">
-              <button @click="loadSavedCourse(c, true)">불러오기(대체)</button>
-              <button @click="loadSavedCourse(c, false)">불러오기(추가)</button>
-              <button class="danger" @click="deleteSavedCourse(c.id)">삭제</button>
-            </div>
-          </li>
-        </ul>
-        <div class="modal-actions">
-          <button @click="closeSavedPanel">닫기</button>
-        </div>
-      </div>
-    </div>
+    </transition>
   </section>
 </template>
 
 <style scoped>
-.region-overview { position: relative; }
-
-.route-layout {
+/* 1. 레이아웃 구조 정의 */
+.region-overview {
   display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  color: #1e293b;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* 2. 에어비앤비 스타일 헤더 */
+.tab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1.5px solid #f1f5f9;
+  flex-wrap: wrap;
   gap: 16px;
-  align-items: flex-start;
 }
-
-/* 좌측: 지도 패널 (지도 + 장소추가) */
-.map-panel {
-  flex: 1 1 0;
-  min-width: 0;
+.header-titles h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+.subtitle {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin: 0;
+}
+.header-actions {
   display: flex;
-  flex-direction: column;
-}
-.map {
-  width: 100%;
-  height: 520px;
-  border-radius: 8px;
-  overflow: hidden;
+  gap: 10px;
 }
 
-/* 장소추가 블록: 지도 바로 아래에 모든 검색/카테고리/목록 포함 */
-.add-place {
-  margin-top: 12px;
-  padding: 12px;
-}
-
-/* 장소 목록 스크롤 제약 */
-.panel-list {
-  display: grid;
-  gap: 8px;
-  max-height: 260px;
-  overflow: auto;
-  padding-right: 6px;
-}
-
-/* 장소칩 전체 너비 */
-.place-chip {
-  text-align: left;
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px solid #e6e6e6;
-  background: #fff;
+/* 버튼 통합 가이드 */
+.btn-action {
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
   cursor: pointer;
-  width: 100%;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
 }
-.place-chip.course { border-style: dashed; }
-.place-chip.selected { background: linear-gradient(180deg,#e6f7ff,#fff); border-color:#60a5fa; }
+.btn-action.primary { background: #2563eb; color: #fff; }
+.btn-action.primary:hover { background: #1d4ed8; }
+.btn-action.secondary { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+.btn-action.secondary:hover { background: #e2e8f0; }
+.btn-action.success { background: #10b981; color: #fff; }
+.btn-action.success:hover { background: #059669; }
+.btn-action.success:disabled { background: #cbd5e1; cursor: not-allowed; }
 
-/* 우측: 버튼 + 내가 짠 코스 목록 */
-.route-planner.buttons-and-list {
-  width: 320px;
-  box-sizing: border-box;
+/* 3. 워크스페이스 구조 (2열 스플릿 레이아웃) */
+.trip-workspace {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  gap: 20px;
+  height: calc(100vh - 180px);
+  min-height: 600px;
   align-items: stretch;
 }
 
-/* 헤더 + 버튼 정렬 (세로) */
-.planner-header.vertical {
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  align-items:flex-start;
+/* 3-1. 좌측 컨트롤 사이드바 */
+.sidebar-panel {
+  flex: 0 0 400px;
+  width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  padding-right: 6px;
 }
-.planner-buttons {
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-  width:100%;
-}
-.planner-button {
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  padding: 8px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  width:100%;
-  text-align:left;
-}
-.save-course-btn {
-  background: #10b981;
-  color: #fff;
-  border: none;
-  padding: 8px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  width:100%;
+/* 사이드바 스크롤바 미려하게 다듬기 */
+.sidebar-panel::-webkit-scrollbar { width: 6px; }
+.sidebar-panel::-webkit-scrollbar-track { background: transparent; }
+.sidebar-panel::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+.card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
 }
 
-/* 코스 목록 */
-.course-panel {
-  display:flex;
-  flex-direction:column;
-  gap:8px;
+/* 검색 필터 */
+.search-box {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 8px 14px;
+  gap: 10px;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
 }
-.route-list {
-  max-height: 300px;
-  overflow: auto;
+.search-box:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background: #ffffff;
+}
+.styled-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.92rem;
+  width: 100%;
+}
+.category-scroll-container {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.category-scroll-container::-webkit-scrollbar { height: 4px; }
+.category-scroll-container::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+
+.category-tag-chip {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1.5px solid #e2e8f0;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+.category-tag-chip.active { background: #2563eb !important; border-color: #2563eb !important; color: #fff !important; }
+
+/* 트리플 스타일 타임라인 설계 */
+.timeline-planner {
+  background: #fafcff;
+  border: 1.5px dashed rgba(59, 130, 246, 0.2);
+}
+.section-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.section-title-row h3 { font-size: 1rem; font-weight: 800; margin: 0; }
+.badge-count { background: #dbeafe; color: #1e40af; font-size: 0.75rem; font-weight: 700; padding: 4px 8px; border-radius: 20px; }
+
+.empty-timeline {
+  text-align: center;
+  padding: 24px;
+  color: #94a3b8;
+}
+.empty-icon { font-size: 1.8rem; margin-bottom: 6px; }
+
+.timeline-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.timeline-item {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.timeline-line {
+  position: absolute;
+  left: 12px;
+  top: 24px;
+  bottom: -16px;
+  width: 2.5px;
+  background: #e2e8f0;
+  z-index: 1;
+}
+.timeline-node {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.timeline-content {
+  flex: 1;
+  background: #ffffff;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.01);
+}
+.timeline-info h4 { font-size: 0.88rem; font-weight: 700; margin: 0 0 2px 0; }
+.timeline-info .desc { font-size: 0.78rem; color: #64748b; margin: 0; }
+.timeline-controls { display: flex; gap: 4px; }
+.btn-micro {
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  border: none;
+  cursor: pointer;
+  font-size: 0.7rem;
+}
+.btn-micro:hover { background: #e2e8f0; }
+.btn-micro.danger { color: #f43f5e; background: #fff1f2; }
+.btn-micro.danger:hover { background: #ffe4e6; }
+
+.route-summary-bar {
+  margin-top: 10px;
+  background: #f1f5f9;
+  padding: 10px;
+  border-radius: 8px;
+}
+.summary-label { font-size: 0.75rem; font-weight: 800; color: #475569; }
+.summary-text { font-size: 0.8rem; margin: 2px 0 0 0; color: #1e293b; font-weight: 600; line-height: 1.4; }
+
+/* 장소 탐색 목록 그리드 */
+.place-explorer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.explorer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.explorer-header h3 { font-size: 1rem; font-weight: 800; margin: 0; }
+.map-view-toggles { display: flex; gap: 4px; background: #f1f5f9; padding: 3px; border-radius: 8px; }
+.view-toggle-btn {
+  border: none;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  color: #64748b;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+.view-toggle-btn.active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+.modern-place-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.modern-place-card {
+  display: flex;
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  align-items: center;
+  transition: all 0.18s ease;
+}
+.modern-place-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.03);
+  border-color: #cbd5e1;
+}
+.modern-place-card.selected {
+  background: #fafcff;
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.05);
+}
+.modern-place-card.course-type { border-style: dashed; }
+
+.card-indicator {
+  width: 6px;
+  align-self: stretch;
+}
+.card-details {
+  flex: 1;
+  padding: 12px;
+}
+.card-meta { display: flex; gap: 6px; margin-bottom: 2px; }
+.place-type-label { font-size: 0.72rem; font-weight: 800; }
+.course-badge { background: #f43f5e; color: #fff; font-size: 0.65rem; padding: 1px 4px; border-radius: 4px; font-weight: 700; }
+.card-details h4 { font-size: 0.9rem; font-weight: 700; margin: 0 0 4px 0; }
+.place-desc { font-size: 0.8rem; color: #64748b; margin: 0; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+
+.action-check-box {
+  padding: 0 16px;
+  font-size: 1.2rem;
+  color: #cbd5e1;
+  font-weight: 700;
+}
+.modern-place-card.selected .action-check-box { color: #3b82f6; }
+
+.modern-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+}
+.btn-page {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.btn-page:disabled { color: #cbd5e1; cursor: not-allowed; }
+.page-indicator { font-size: 0.82rem; color: #64748b; }
+
+/* 3-2. 우측 지도 컨테이너 */
+.map-container-wrap {
+  flex: 1;
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
+}
+.modern-leaflet-map {
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+}
+
+/* 지도 위 플로팅 타입 필터 */
+.map-floating-bar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: calc(100% - 32px);
+}
+.map-chip {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 30px;
+  padding: 6px 12px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+  transition: all 0.2s ease;
+}
+.map-chip.active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+
+/* 4. 모달 스타일링 */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1500;
+  display: grid;
+  place-items: center;
+}
+.modern-modal {
+  width: 90%;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.modern-modal.large { max-width: 650px; }
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 10px;
+}
+.modal-header h3 { font-size: 1.1rem; font-weight: 800; margin: 0; }
+.close-modal-btn { border: none; background: transparent; font-size: 1.1rem; cursor: pointer; color: #94a3b8; }
+
+.modal-body {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-.order-pill {
-  width: 30px;
-  height: 30px;
-  display:grid;
-  place-items:center;
-  border-radius:50%;
-  background:#2563eb;
-  color:white;
-  font-weight:700;
+.modal-body.scrollable { max-height: 400px; overflow-y: auto; }
+.modal-body label { font-size: 0.85rem; font-weight: 700; color: #475569; margin-top: 4px; }
+.modal-input { padding: 10px; border-radius: 8px; border: 1.5px solid #e2e8f0; outline: none; }
+.modal-input:focus { border-color: #3b82f6; }
+.modal-textarea { padding: 10px; border-radius: 8px; border: 1.5px solid #e2e8f0; outline: none; height: 100px; resize: none; }
+.modal-textarea:focus { border-color: #3b82f6; }
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
 }
-.route-step {
-  display:flex;
-  gap:8px;
-  align-items:center;
-  padding:8px;
-  border-radius:8px;
-  border:1px solid #f1f5f9;
+.btn-modal { padding: 10px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; }
+.btn-modal.cancel { background: #f1f5f9; color: #475569; }
+.btn-modal.confirm { background: #2563eb; color: #fff; }
+
+/* 저장한 코스 리스트 */
+.saved-list-modern { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.saved-course-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+}
+.saved-course-card .course-meta h4 { margin: 0 0 2px 0; font-size: 0.95rem; }
+.saved-course-card .course-meta .description { font-size: 0.8rem; color: #64748b; margin: 0; }
+.saved-course-card .course-meta .date { font-size: 0.72rem; color: #94a3b8; }
+.course-actions-group { display: flex; gap: 6px; }
+.btn-action-small { padding: 6px 10px; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+.btn-action-small.import-replace { background: #dbeafe; color: #1e40af; }
+.btn-action-small.import-add { background: #e0f2fe; color: #0369a1; }
+.btn-action-small.delete { background: #ffe4e6; color: #be123c; }
+
+/* 지도 팝업 카드 */
+:deep(.map-popup-card) {
+  padding: 6px 2px;
+  font-family: inherit;
+}
+:deep(.popup-tag) {
+  display: inline-block;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+:deep(.map-popup-card strong) {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+:deep(.map-popup-card p) {
+  font-size: 0.78rem;
+  color: #475569;
+  margin: 0;
+  line-height: 1.35;
 }
 
-/* 기타 작은 보정 */
-.search-controls { display:flex; flex-direction:column; gap:8px; }
-.place-search { padding:8px; border-radius:8px; border:1px solid #e6e6e6; width:100%; box-sizing:border-box; }
-.category-row { display:flex; gap:8px; flex-wrap:wrap; }
-.pagination { display:flex; gap:8px; align-items:center; justify-content:center; margin-top:8px; }
+/* 5. 지도 핀 배지 디자인 개선 */
+:deep(.route-step-badge) {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 12px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+  line-height: 1;
+}
 
-.modal-backdrop { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,0.35); z-index: 1200; }
+/* 트랜지션 애니메이션 */
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.2s ease; }
+.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
+
+/* 반응형 모바일 대응 */
+@media (max-width: 1024px) {
+  .trip-workspace { flex-direction: column; height: auto; }
+  .sidebar-panel { width: 100%; flex: none; }
+  .map-container-wrap { height: 400px; min-height: auto; }
+}
 </style>
