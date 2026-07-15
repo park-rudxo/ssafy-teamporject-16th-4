@@ -3,11 +3,22 @@ import { computed, nextTick, onMounted, ref } from 'vue'
 
 const posts = ref([])
 
+const categories = [
+  '맛집·카페',
+  '가볼 만한 곳',
+  '즐길거리',
+  '코스 공유',
+  '행사·축제',
+  '질문·도움',
+  '후기·정보'
+]
+
 const form = ref({
   title: '',
   content: '',
   password: '',
-  nickname: ''
+  nickname: '',
+  category: categories[0] // 기본값: 첫 카테고리
 })
 
 const editingId = ref(null)
@@ -16,13 +27,6 @@ const searchQuery = ref('')
 const searchScope = ref('all')
 const showBookmarksOnly = ref(false)
 const sortMode = ref('latest') // 'latest' | 'likes' | 'views'
-const sortRequested = ref(false)
-
-function applySort() {
-  // toggle to make computed re-evaluate when user clicks "조회"
-  sortRequested.value = !sortRequested.value
-}
-
 const currentView = ref('list')
 const selectedPostId = ref(null)
 
@@ -39,6 +43,7 @@ const errors = ref({
   content: '',
   password: ''
 })
+const selectedCategoryFilter = ref('all') // 'all' 또는 카테고리 문자열
 
 const fontSizeValue = ref('3')
 const textColorValue = ref('#111827')
@@ -149,12 +154,14 @@ const filteredPosts = computed(() => {
 })
 
 const displayedPosts = computed(() => {
-  void sortRequested.value // depend on manual trigger
-
   const base = (showBookmarksOnly.value ? posts.value.filter(p => p.bookmarked) : posts.value)
+  const categoryFiltered = selectedCategoryFilter.value === 'all'
+    ? base
+    : base.filter(p => p.category === selectedCategoryFilter.value)
+
   const filtered = searchQuery.value.trim()
-    ? base.filter(p => matchesSearch(p, searchQuery.value.trim().toLowerCase()))
-    : base
+    ? categoryFiltered.filter(p => matchesSearch(p, searchQuery.value.trim().toLowerCase()))
+    : categoryFiltered
 
   if (sortMode.value === 'likes') {
     return [...filtered].sort((a,b) => (b.likes || 0) - (a.likes || 0))
@@ -194,12 +201,15 @@ function loadPosts() {
     )
 
     posts.value = savedPosts.map(post => ({
-      bookmarked: false,
-      nickname: '익명',
-      likes: 0,
-      liked: false,
-      views: 0,
-      ...post
+      ...post,
+      bookmarked: Boolean(post.bookmarked),
+      nickname: (post.nickname || '').trim() || '익명',
+      likes: Number(post.likes) || 0,
+      liked: Boolean(post.liked),
+      views: Number(post.views) || 0,
+      category: categories.includes(post.category)
+        ? post.category
+        : categories[0]
     }))
   } catch (error) {
     console.error('게시글을 불러오지 못했습니다.', error)
@@ -482,7 +492,14 @@ function resetForm() {
     title: '',
     content: '',
     password: '',
-    nickname: ''
+    nickname: '',
+    category: categories[0]
+  }
+
+  errors.value = {
+    title: '',
+    content: '',
+    password: ''
   }
 
   editingId.value = null
@@ -603,6 +620,7 @@ function submitPost() {
     targetPost.title = title
     targetPost.content = content.trim()
     targetPost.nickname = nickname
+    targetPost.category = form.value.category || categories[0]
     targetPost.updatedAt = new Date().toISOString()
   } else {
     posts.value.unshift({
@@ -611,6 +629,7 @@ function submitPost() {
       content: content.trim(),
       password,
       nickname,
+      category: form.value.category || categories[0],
       createdAt: new Date().toISOString(),
       bookmarked: false,
       likes: 0,
@@ -637,7 +656,10 @@ function startEdit(post) {
     title: post.title,
     content: post.content || '',
     password: '',
-    nickname: post.nickname || ''
+    nickname: post.nickname || '',
+    category: categories.includes(post.category)
+      ? post.category
+      : categories[0]
   }
 
   currentView.value = 'write'
@@ -742,12 +764,29 @@ function toggleBookmark(post) {
         </select>
       </div>
 
-      <div class="sort-controls">
-        <select v-model="sortMode">
-          <option value="latest">최신순</option>
-          <option value="likes">추천순</option>
-          <option value="views">조회수순</option>
-        </select>
+      <div class="list-controls">
+        <div class="sort-controls">
+          <label for="sort-mode">정렬</label>
+          <select id="sort-mode" v-model="sortMode">
+            <option value="latest">최신순</option>
+            <option value="likes">추천순</option>
+            <option value="views">조회수순</option>
+          </select>
+        </div>
+
+        <div class="category-filter">
+          <label for="category-filter">카테고리</label>
+          <select id="category-filter" class="custom-select" v-model="selectedCategoryFilter">
+            <option value="all">전체</option>
+            <option
+              v-for="category in categories"
+              :key="category"
+              :value="category"
+            >
+              {{ category }}
+            </option>
+          </select>
+        </div>
       </div>
 
       <label class="bookmark-filter">
@@ -790,12 +829,15 @@ function toggleBookmark(post) {
                   {{ post.nickname || '익명' }}
                 </span>
 
+                <span class="category">{{ post.category }}</span>
+
                 <small>
                   {{ formatDate(post.createdAt) }} · 조회 {{ post.views || 0 }} · 추천 {{ post.likes || 0 }}
                 </small>
               </div>
             </div>
           </div>
+
         </div>
       </div>
 
@@ -833,6 +875,8 @@ function toggleBookmark(post) {
               <span class="nickname">
                 {{ selectedPost.nickname || '익명' }}
               </span>
+
+              <span class="category">{{ selectedPost.category }}</span>
 
               <small>
                 {{ formatDate(selectedPost.createdAt) }} · 조회 {{ selectedPost.views || 0 }} · 추천 {{ selectedPost.likes || 0 }}
@@ -970,10 +1014,11 @@ function toggleBookmark(post) {
                   {{ post.nickname || '익명' }}
                 </span>
 
+                <span class="category">{{ post.category }}</span>
+
                 <small>
                   {{ formatDate(post.createdAt) }} · 조회 {{ post.views || 0 }} · 추천 {{ post.likes || 0 }}
                 </small>
-                
               </div>
             </div>
 
@@ -1104,6 +1149,13 @@ function toggleBookmark(post) {
             type="text"
             placeholder="닉네임을 입력하지 않으면 익명으로 표시됩니다"
           >
+        </div>
+
+        <div class="form-group">
+          <label for="post-category">카테고리</label>
+          <select id="post-category" class="custom-select" v-model="form.category">
+            <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+          </select>
         </div>
 
         <div class="form-group">
@@ -1292,7 +1344,7 @@ function toggleBookmark(post) {
 
         <div class="actions form-actions">
           <button type="submit">
-            {{ editingId ? '수정하기' : '작성하기' }}
+            {{ editingId !== null ? '수정하기' : '작성하기' }}
           </button>
 
           <button
@@ -1473,6 +1525,76 @@ select:focus {
   border-radius: 4px;
   background-color: #ffffff;
   font-size: 14px;
+}
+
+.list-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 8px 0 12px;
+}
+
+.sort-controls,
+.category-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sort-controls label,
+.category-filter label {
+  color: #555555;
+  font-size: 14px;
+}
+
+.sort-controls select,
+.category-filter select {
+  padding: 7px 10px;
+  border: 1px solid #cccccc;
+  border-radius: 4px;
+  background-color: #ffffff;
+  font-size: 14px;
+}
+
+.category {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background-color: #e8f3ff;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.custom-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: #fff;
+  border: 1px solid #d1d5db;
+  padding: 8px 38px 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #111827;
+  background-image: linear-gradient(45deg, transparent 50%, #6b7280 50%),
+                    linear-gradient(135deg, #6b7280 50%, transparent 50%),
+                    linear-gradient(to right, #f3f4f6, #f3f4f6);
+  background-position: calc(100% - 18px) calc(1em + 2px), calc(100% - 12px) calc(1em + 2px), 0 0;
+  background-size: 8px 8px, 8px 8px, 100% 100%;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+.custom-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+}
+
+/* 작은 화면 대응 */
+@media (max-width: 600px) {
+  .custom-select { padding-right: 44px; }
 }
 
 .bookmark-filter {
@@ -1973,6 +2095,18 @@ select:focus {
   .search-scope {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .list-controls,
+  .sort-controls,
+  .category-filter {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sort-controls select,
+  .category-filter select {
+    width: 100%;
   }
 
   .editor-toolbar button,
