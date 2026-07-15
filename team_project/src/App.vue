@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import RegionOverview from './components/RegionOverview.vue'
 import CommunityBoard from './components/CommunityBoard.vue'
 import ChatbotPanel from './components/ChatbotPanel.vue'
+import Landing from './components/Landing.vue'
 
 const modules = import.meta.glob('./data/**/*.json', { eager: true })
 
@@ -52,7 +53,6 @@ for (const key in modules) {
 
   const normalized = entries
     .map(e => {
-      // 여행코스 항목일 경우 stops 배열을 정규화해서 코스 객체로 보존
       if (e && Array.isArray(e.stops) && e.stops.length) {
         const course = normalizeFromItem(e, fallbackType) || {}
         course.isCourse = true
@@ -81,7 +81,7 @@ seoul.highlights = seoul.highlights.filter(h => {
 })
 
 const currentRegion = ref(seoul)
-const activeTab = ref('map')
+const activeTab = ref('landing') // 기본을 랜딩으로 설정
 </script>
 
 <template>
@@ -94,15 +94,21 @@ const activeTab = ref('map')
     </header>
 
     <nav class="tabs">
+      <button :class="{ active: activeTab === 'landing' }" @click="activeTab = 'landing'">홈</button>
       <button :class="{ active: activeTab === 'map' }" @click="activeTab = 'map'">지도</button>
       <button :class="{ active: activeTab === 'community' }" @click="activeTab = 'community'">커뮤니티</button>
       <button :class="{ active: activeTab === 'chat' }" @click="activeTab = 'chat'">챗봇</button>
     </nav>
 
     <main class="main-area">
-      <div class="map-tab-shell" v-if="activeTab === 'map'">
+      <div v-if="activeTab === 'landing'">
+        <Landing :items="currentRegion.highlights" />
+      </div>
+
+      <div class="map-tab-shell" v-else-if="activeTab === 'map'">
         <RegionOverview :key="currentRegion.name" :region="currentRegion" />
       </div>
+
       <CommunityBoard v-else-if="activeTab === 'community'" />
       <ChatbotPanel v-else />
     </main>
