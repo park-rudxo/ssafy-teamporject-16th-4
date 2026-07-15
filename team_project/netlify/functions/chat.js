@@ -1,6 +1,8 @@
 import fs from 'fs'
 import path from 'path'
 
+import { buildCommunityContext } from '../../src/services/communityChatContext.js'
+
 function getDataFiles() {
   const baseDir = path.resolve(process.cwd(), 'src/data/서울')
 
@@ -93,7 +95,7 @@ export async function handler(event) {
   }
 
   try {
-    const { message, history = [] } = JSON.parse(event.body || '{}')
+    const { message, history = [], communityPosts = [] } = JSON.parse(event.body || '{}')
 
     if (typeof message !== 'string' || !message.trim()) {
       return {
@@ -113,12 +115,13 @@ export async function handler(event) {
       }
     }
 
-    const context = buildContext(message)
+    const contextParts = [buildContext(message), buildCommunityContext(message, communityPosts)].filter(Boolean)
+    const context = contextParts.length ? contextParts.join('\n\n') : ''
 
     const messages = [
       {
         role: 'system',
-        content: `당신은 LocalHub의 지역 정보/커뮤니티 전문 챗봇입니다. 항상 한국어로 답하세요. 불필요하게 길게 대답하지 말기. 불필요한 꼬리 질문 하지 말기. 대화 맥락을 유지하세요. 지역명이 직접 주소에 쓰이지 않아도, 그 지역과 연관된 주변 동네·구역·지명까지 연결해 해석하세요. 사용자의 질문이 지역/맛집/행사/교통/커뮤니티/관광 관련이면, 먼저 제공된 데이터가 있으면 그 데이터를 우선적으로 참고해서 답하세요. 데이터가 없으면 일반적인 답변을 하되, 지역 정보 앱의 목적에 맞게 짧고 실용적으로 답하세요.`
+        content: `당신은 LocalHub의 지역 정보/커뮤니티 전문 챗봇입니다. 항상 한국어로 답하세요. 불필요하게 길게 대답하지 말기. 불필요한 꼬리 질문 하지 말기. 대화 맥락을 유지하세요. 지역명이 직접 주소에 쓰이지 않아도, 그 지역과 연관된 주변 동네·구역·지명까지 연결해 해석하세요. 사용자의 질문이 지역/맛집/행사/교통/커뮤니티/관광 관련이면, 먼저 제공된 데이터가 있으면 그 데이터를 우선적으로 참고해서 답하세요. 커뮤니티 게시글이 함께 주어지면, 관련 게시글 내용을 참고해 답하세요. 데이터가 없으면 일반적인 답변을 하되, 지역 정보 앱의 목적에 맞게 짧고 실용적으로 답하세요.`
       },
       ...history.slice(-10).map((item) => ({
         role: item.role,
