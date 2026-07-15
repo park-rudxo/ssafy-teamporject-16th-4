@@ -35,6 +35,16 @@ const selectedCategory = ref('전체')
 const searchQuery = ref('')
 const showRouteOnly = ref(false)
 
+// 저장 관련 상태
+const saveModalOpen = ref(false)
+const courseName = ref('')
+const courseDesc = ref('')
+const isSaving = ref(false)
+
+// 저장된 코스 보기 상태
+const savedPanelOpen = ref(false)
+const savedCourses = ref([])
+
 function parseCoord(value) {
   const num = Number(value)
   return Number.isFinite(num) ? num : null
@@ -70,7 +80,6 @@ function toggleRouteOnly() {
 }
 
 function normalizeDisplayItem(item, index) {
-  // 코스 항목: item.stops가 있는 객체
   if (item && Array.isArray(item.stops) && item.stops.length) {
     const name = item?.name || item?.title || '여행코스'
     const description = item?.description || item?.addr1 || ''
@@ -159,41 +168,6 @@ const routeSummary = computed(() => {
     .join(' → ')
 })
 
-function addToRoute(item) {
-  if (!item) return
-
-  // 코스면 내부 stops를 모두 추가
-  if (item.isCourse || (item.raw && Array.isArray(item.raw.stops) && item.raw.stops.length)) {
-    const stops = item.stops ?? (item.raw?.stops ?? [])
-    stops.forEach((s, idx) => {
-      const stopId = s.id ?? s.contentid ?? `${item.id}-stop-${idx}`
-      const exists = routeStops.value.some(stop => stop.id === stopId)
-      if (exists) return
-      const toAdd = {
-        id: stopId,
-        name: s.name || s.title || `정류장 ${idx + 1}`,
-        description: s.description || s.addr1 || '',
-        lat: s.lat,
-        lng: s.lng,
-        type: s.type,
-        raw: s.raw ?? s
-      }
-      if (toAdd.lat == null || toAdd.lng == null) return
-      routeStops.value.push(toAdd)
-      emit('selectCourse', s.raw ?? s)
-    })
-    updateMarkers()
-    return
-  }
-
-  const exists = routeStops.value.some(stop => stop.id === item.id)
-  if (exists) return
-
-  routeStops.value.push(item)
-  emit('selectCourse', item.raw ?? item)
-  updateMarkers()
-}
-
 function removeFromRoute(id) {
   routeStops.value = routeStops.value.filter(stop => stop.id !== id)
   updateMarkers()
@@ -217,6 +191,173 @@ function seedRoute() {
   updateMarkers()
 }
 
+// 토글형 장소 추가/삭제
+function togglePlace(item) {
+  if (!item) return
+
+  if (item.isCourse || (item.raw && Array.isArray(item.raw.stops) && item.raw.stops.length)) {
+    const stops = item.stops ?? (item.raw?.stops ?? [])
+    const stopIds = stops.map((s, idx) => s.id ?? s.contentid ?? `${item.id}-stop-${idx}`)
+    const anyInRoute = stopIds.some(id => routeStops.value.some(rs => rs.id === id))
+
+    if (anyInRoute) {
+      routeStops.value = routeStops.value.filter(rs => !stopIds.includes(rs.id))
+      updateMarkers()
+      return
+    } else {
+      stops.forEach((s, idx) => {
+        const stopId = s.id ?? s.contentid ?? `${item.id}-stop-${idx}`
+        const exists = routeStops.value.some(stop => stop.id === stopId)
+        if (exists) return
+        const toAdd = {
+          id: stopId,
+          name: s.name || s.title || `정류장 ${idx + 1}`,
+          description: s.description || s.addr1 || '',
+          lat: s.lat ?? parseCoord(s?.mapy ?? s?.latitude ?? null),
+          lng: s.lng ?? parseCoord(s?.mapx ?? s?.longitude ?? null),
+          type: normalizeType(s?.type ?? s?.contentType ?? s?.contenttype ?? null),
+          raw: s.raw ?? s
+        }
+        if (toAdd.lat == null || toAdd.lng == null) return
+        routeStops.value.push(toAdd)
+        emit('selectCourse', s.raw ?? s)
+      })
+      updateMarkers()
+      return
+    }
+  }
+
+  const exists = routeStops.value.some(stop => stop.id === item.id)
+  if (exists) {
+    removeFromRoute(item.id)
+    return
+  }
+
+  routeStops.value.push(item)
+  emit('selectCourse', item.raw ?? item)
+  updateMarkers()
+}
+
+/* ----- 저장(로컬스토리지) 관련 유틸 ----- */
+const STORAGE_KEY = 'localhub-courses'
+
+function getSavedCourses() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+  } catch {
+    return []
+  }
+}
+
+function saveCoursesList(list) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list || []))
+}
+
+function openSaveModal() {
+  if (!routeStops.value.length) {
+    alert('저장할 경로가 비어 있습니다. 장소를 먼저 추가하세요.')
+    return
+  }
+  courseName.value = ''
+  courseDesc.value = ''
+  saveModalOpen.value = true
+}
+
+function saveCourse() {
+  if (isSaving.value) return
+  isSaving.value = true
+
+  try {
+    const name = (courseName.value || '').trim() || `내 코스 ${new Date().toLocaleString()}`
+    const desc = (courseDesc.value || '').trim()
+
+    const stops = routeStops.value.map(s => ({
+      id: s.id,
+      name: s.name,
+      description: s.description || '',
+      lat: s.lat,
+      lng: s.lng,
+      type: s.type,
+      raw: s.raw ?? null
+    }))
+
+    const newCourse = {
+      id: Date.now(),
+      name,
+      description: desc,
+      stops,
+      createdAt: new Date().toISOString()
+    }
+
+    const list = getSavedCourses()
+    list.unshift(newCourse)
+    saveCoursesList(list)
+
+    saveModalOpen.value = false
+    loadSavedCourses()
+    alert('코스가 저장되었습니다. (로컬스토리지)')
+  } catch (err) {
+    console.error(err)
+    alert('저장 중 오류가 발생했습니다.')
+  } finally {
+    isSaving.value = false
+  }
+}
+
+/* ----- 저장된 코스 목록 로드/삭제/불러오기 ----- */
+function loadSavedCourses() {
+  savedCourses.value = getSavedCourses()
+}
+
+function openSavedPanel() {
+  loadSavedCourses()
+  savedPanelOpen.value = true
+}
+
+function closeSavedPanel() {
+  savedPanelOpen.value = false
+}
+
+function deleteSavedCourse(courseId) {
+  if (!confirm('이 코스를 삭제하시겠습니까?')) return
+  const list = getSavedCourses().filter(c => c.id !== courseId)
+  saveCoursesList(list)
+  loadSavedCourses()
+}
+
+function loadSavedCourse(course, replace = true) {
+  if (!course || !Array.isArray(course.stops)) return
+  const stops = course.stops
+    .map((s, idx) => ({
+      id: s.id ?? `${course.id}-stop-${idx}`,
+      name: s.name || `정류장 ${idx + 1}`,
+      description: s.description || '',
+      lat: parseCoord(s.lat),
+      lng: parseCoord(s.lng),
+      type: s.type ?? null,
+      raw: s.raw ?? null
+    }))
+    .filter(s => s.lat != null && s.lng != null)
+
+  if (!stops.length) {
+    alert('선택한 코스에 지도 좌표가 포함되어 있지 않습니다.')
+    return
+  }
+
+  if (replace) {
+    routeStops.value = [...stops]
+  } else {
+    // append, avoid duplicates by id
+    stops.forEach(s => {
+      if (!routeStops.value.some(r => r.id === s.id)) routeStops.value.push(s)
+    })
+  }
+  stops.forEach(s => emit('selectCourse', s.raw ?? s))
+  updateMarkers()
+  closeSavedPanel()
+}
+
+/* ----- 지도 및 마커 로직 (기존) ----- */
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
@@ -333,7 +474,6 @@ function updateMarkers() {
   markersLayer.clearLayers()
 
   const points = Array.isArray(props.region.highlights) ? props.region.highlights : []
-  // 코스 내부 정류장은 지도에 기본적으로 표시하지 않고 개별 포인트만 표시
   const allPoints = points
     .flatMap(p => {
       if (p && Array.isArray(p.stops) && p.stops.length) {
@@ -388,6 +528,7 @@ function updateMarkers() {
 
 onMounted(() => {
   initMap()
+  loadSavedCourses()
 })
 
 onBeforeUnmount(() => {
@@ -498,7 +639,10 @@ watch(
             <h3>경로 짜기</h3>
             <p>데이터 기반으로 방문 순서를 정리해보세요.</p>
           </div>
-          <button class="planner-button" @click="seedRoute">추천 3곳</button>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="planner-button" @click="seedRoute">추천 3곳</button>
+            <button class="planner-button" @click="openSavedPanel">저장한 코스</button>
+          </div>
         </div>
 
         <div class="route-list">
@@ -555,7 +699,7 @@ watch(
               :key="place.id"
               class="place-chip"
               :class="{ selected: routeStops.some(stop => stop.id === place.id), course: place.isCourse }"
-              @click="addToRoute(place)"
+              @click="togglePlace(place)"
             >
               {{ place.name }} <span v-if="place.isCourse"> (코스)</span>
             </button>
@@ -564,8 +708,49 @@ watch(
 
         <div class="planner-footer">
           <p>{{ routeSummary }}</p>
+          <div class="planner-actions">
+            <button class="save-course-btn" @click="openSaveModal">코스 저장</button>
+          </div>
         </div>
       </aside>
+    </div>
+
+    <!-- 저장 모달 -->
+    <div v-if="saveModalOpen" class="modal-backdrop" @click.self="saveModalOpen = false">
+      <div class="modal">
+        <h4>코스 저장</h4>
+        <input v-model="courseName" placeholder="코스 이름 (선택)" />
+        <textarea v-model="courseDesc" placeholder="코스 설명 (선택)"></textarea>
+        <div class="modal-actions">
+          <button @click="saveModalOpen = false">취소</button>
+          <button class="primary" @click="saveCourse" :disabled="isSaving">{{ isSaving ? '저장중...' : '저장' }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 저장된 코스 패널 -->
+    <div v-if="savedPanelOpen" class="modal-backdrop" @click.self="closeSavedPanel">
+      <div class="modal large">
+        <h4>저장한 내 코스</h4>
+        <div v-if="!savedCourses.length" class="empty-state">저장된 코스가 없습니다.</div>
+        <ul class="saved-list">
+          <li v-for="c in savedCourses" :key="c.id" class="saved-item">
+            <div class="saved-meta">
+              <strong>{{ c.name }}</strong>
+              <small>{{ c.description }}</small>
+              <div class="saved-created">{{ new Date(c.createdAt).toLocaleString() }}</div>
+            </div>
+            <div class="saved-actions">
+              <button @click="loadSavedCourse(c, true)">불러오기(대체)</button>
+              <button @click="loadSavedCourse(c, false)">불러오기(추가)</button>
+              <button class="danger" @click="deleteSavedCourse(c.id)">삭제</button>
+            </div>
+          </li>
+        </ul>
+        <div class="modal-actions">
+          <button @click="closeSavedPanel">닫기</button>
+        </div>
+      </div>
     </div>
   </section>
 </template>
@@ -575,5 +760,95 @@ watch(
 /* 기존 스타일 그대로 유지... */
 .place-chip.course {
   border-style: dashed;
+}
+.place-chip.selected {
+  background: linear-gradient(180deg, #e6f7ff, #ffffff);
+  border-color: #60a5fa;
+}
+
+/* 저장 모달(간단) */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,0.35);
+  z-index: 1200;
+}
+
+.modal {
+  background: #fff;
+  padding: 16px;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(2,6,23,0.25);
+}
+
+.modal.large {
+  width: 720px;
+  max-width: calc(100vw - 24px);
+  max-height: 80vh;
+  overflow: auto;
+}
+
+.modal h4 {
+  margin: 0 0 8px 0;
+}
+
+.modal input,
+.modal textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin: 8px 0;
+  box-sizing: border-box;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.modal-actions .primary {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* 저장된 코스 목록 */
+.saved-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+  display: grid;
+  gap: 10px;
+}
+.saved-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-radius: 8px;
+  background: #fafafa;
+  border: 1px solid #eee;
+}
+.saved-meta small {
+  display: block;
+  color: #666;
+  margin-top: 6px;
+}
+.saved-created {
+  font-size: 12px;
+  color: #999;
+  margin-top: 6px;
+}
+.saved-actions button {
+  margin-left: 8px;
 }
 </style>
