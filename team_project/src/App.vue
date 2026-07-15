@@ -25,7 +25,7 @@ function normalizeFromItem(item, fallbackType = null) {
   const itemType = item.contentType ?? item.contenttype ?? item.contentTypeId ?? item.contenttypeId ?? fallbackType
   const type = itemType === null ? null : String(itemType)
 
-  return { name, lat, lng, description, image, id, type }
+  return { name, lat, lng, description, image, id, type, raw: item }
 }
 
 const seoul = { name: '서울', description: '서울 권역 통합 데이터', highlights: [] }
@@ -52,6 +52,16 @@ for (const key in modules) {
 
   const normalized = entries
     .map(e => {
+      // 여행코스 항목일 경우 stops 배열을 정규화해서 코스 객체로 보존
+      if (e && Array.isArray(e.stops) && e.stops.length) {
+        const course = normalizeFromItem(e, fallbackType) || {}
+        course.isCourse = true
+        course.stops = e.stops
+          .map(s => normalizeFromItem(s, fallbackType))
+          .filter(Boolean)
+        return course
+      }
+
       if (typeof e === 'string') return { name: e, lat: null, lng: null, description: '' }
       return normalizeFromItem(e, fallbackType)
     })
