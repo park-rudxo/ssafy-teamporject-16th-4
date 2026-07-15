@@ -530,23 +530,32 @@ function toggleBookmark(post) {
 
 <template>
   <section class="card">
-    <h3>익명 커뮤니티</h3>
+    <h3>서울Log ㅡ 우리 동네의 기록</h3>
 
     <!-- 게시글 목록 화면 -->
     <div v-if="currentView === 'list'">
       <div class="search-bar">
-        <input v-model="searchQuery" type="text" placeholder="검색어 입력" @keyup.enter="openSearchResults">
-        <button type="button" class="btn-search" @click="openSearchResults">검색</button>
-      </div>
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="검색어 입력"
+          @keyup.enter="openSearchResults"
+        >
 
-      <div class="search-scope">
-        <label for="search-scope">검색 범위</label>
-        <select id="search-scope" class="custom-select" v-model="searchScope">
+        <select id="search-scope" class="custom-select search-scope-inline" v-model="searchScope">
           <option value="title">제목</option>
           <option value="nickname">닉네임</option>
           <option value="content">내용</option>
           <option value="all">제목 + 내용</option>
         </select>
+
+        <button
+          type="button"
+          class="btn-search"
+          @click="openSearchResults"
+        >
+          검색
+        </button>
       </div>
 
       <div class="list-controls">
@@ -557,7 +566,7 @@ function toggleBookmark(post) {
             <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
           </select>
         </div>
-        
+
         <div class="sort-controls">
           <label for="sort-mode">정렬</label>
           <select id="sort-mode" class="custom-select" v-model="sortMode">
@@ -567,19 +576,19 @@ function toggleBookmark(post) {
             <option value="oldest">오래된순</option>
           </select>
         </div>
+
+        <label class="bookmark-filter">
+          <input v-model="showBookmarksOnly" type="checkbox">
+          북마크만 보기
+        </label>
+        <button type="button" class="btn-write" @click="openWriteForm"> ✏️ 글 작성</button>
       </div>
-
-      <label class="bookmark-filter">
-        <input v-model="showBookmarksOnly" type="checkbox"> 북마크만 보기
-      </label>
-
-      <button type="button" class="btn-write" @click="openWriteForm">글 작성</button>
 
       <div v-if="displayedPosts.length" class="post-table-wrapper">
         <div class="post-table-header">
           <div class="col col-category">카테고리</div>
           <div class="col col-title">제목</div>
-          <div class="col col-author">작성자</div>
+          <div class="col col-author">닉네임</div>
           <div class="col col-date">작성일</div>
           <div class="col col-views">조회수</div>
           <div class="col col-likes">추천수</div>
@@ -613,6 +622,7 @@ function toggleBookmark(post) {
           </div>
         </div>
       </div>
+      
 
       <p v-else class="empty-message">표시할 게시글이 없습니다.</p>
     </div>
@@ -843,19 +853,24 @@ input:focus, select:focus {
 .btn-list { margin-bottom: 15px; background-color: #2196f3; } .btn-list:hover { background-color: #0b7dda; }
 .btn-search { background-color: #ff9800; } .btn-search:hover { background-color: #f57c00; }
 
-.search-bar { display:flex; gap:8px; margin-bottom:10px; }
+.search-bar {display: flex; gap: 8px; align-items: center; margin-bottom: 10px;}
 .search-bar input { flex:1; }
 
 .search-scope { display:flex; align-items:center; gap:8px; margin:8px 0 12px; }
 .search-scope label { color:#555; font-size:14px; }
+.search-scope-inline { width: 100px; min-width: 120px;}
 
-.list-controls { display:flex; flex-wrap:wrap; gap:12px; margin:8px 0 12px; }
+.list-controls { display:flex; flex-wrap:wrap; gap:12px; margin:8px 0 12px; align-items: center;}
+/* 오른쪽으로 밀기 */
+.list-controls .bookmark-filter { margin-left: auto;}
+.list-controls .bookmark-filter { margin-left: 8px; /* 또는 0 — 간격 원하면 조정 */ }
+.list-controls .btn-write { margin-left: auto; flex: 0 0 auto; padding: 8px 16px; }
 .sort-controls, .category-filter { display:flex; align-items:center; gap:8px; }
 .sort-controls label, .category-filter label { color:#555; font-size:14px; }
 
 .custom-select {
   appearance: none; -webkit-appearance:none; -moz-appearance:none;
-  background-color:#fff; border:1px solid #d1d5db; padding:8px 38px 8px 12px; border-radius:8px; font-size:14px; color:#111827;
+  background-color:#fff; border:1px solid #d1d5db; padding:8px 28px 8px 12px; border-radius:8px; font-size:14px; color:#111827;
   background-image: linear-gradient(45deg, transparent 50%, #6b7280 50%), linear-gradient(135deg, #6b7280 50%, transparent 50%), linear-gradient(to right, #f3f4f6, #f3f4f6);
   background-position: calc(100% - 18px) calc(1em + 2px), calc(100% - 12px) calc(1em + 2px), 0 0;
   background-size: 8px 8px, 8px 8px, 100% 100%; background-repeat: no-repeat; cursor:pointer;
@@ -1010,9 +1025,10 @@ input:focus, select:focus {
 
 @media (max-width: 600px) {
   .card { padding:14px; }
-  .search-bar { flex-direction:column; }
+  .search-bar { flex-direction: column; align-items: stretch;}
   .btn-search { width:100%; }
   .search-scope { align-items:stretch; flex-direction:column; }
+  .search-scope-inline { width: 100%;}
   .list-controls, .sort-controls, .category-filter { align-items:stretch; flex-direction:column; }
   .sort-controls select, .category-filter select { width:100%; }
   .editor-toolbar button, .editor-toolbar select { flex-grow:1; }
