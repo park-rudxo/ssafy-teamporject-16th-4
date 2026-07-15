@@ -4,11 +4,26 @@
       <div class="hero-content">
         <h1>Discover Seoul</h1>
         <p>인기 관광지와 지역별 추천 명소를 한눈에.</p>
+
         <div class="hero-actions">
-          <button @click="activeCategory = categories[0]" :class="{ primary: true }">주요 명소</button>
-          <button @click="scrollToCarousel">둘러보기</button>
+          <button
+            :class="{ primary: activeCategory === 'all' }"
+            @click="setCategory('all')"
+          >
+            전체
+          </button>
+
+          <button
+            v-for="cat in categories"
+            :key="cat"
+            :class="{ active: activeCategory === cat }"
+            @click="setCategory(cat)"
+          >
+            {{ catLabels[cat] || cat }}
+          </button>
         </div>
       </div>
+
       <div class="hero-visual" aria-hidden="true">
         <div class="hero-grid">
           <div v-for="(it, i) in sampleHero" :key="i" class="hero-thumb">
@@ -18,113 +33,56 @@
       </div>
     </div>
 
-    <nav class="landing-cats" v-if="categories.length">
-      <button
-        v-for="cat in categories"
-        :key="cat"
-        @click="activeCategory = cat"
-        :class="{ active: activeCategory === cat }"
-      >
-        {{ catLabels[cat] || cat }}
-      </button>
-    </nav>
-
-    <div class="carousels" ref="carouselsRoot">
-      <div
-        v-for="cat in categories"
-        :key="cat"
-        class="carousel-wrap"
-        :data-active="activeCategory === cat"
-      >
-        <div class="carousel-header">
-          <h2>{{ catLabels[cat] || cat }}</h2>
-          <div class="controls">
-            <button @click="prev(cat)" aria-label="prev">◀</button>
-            <button @click="togglePlay(cat)" :aria-pressed="!isPlaying(cat)">
-              {{ isPlaying(cat) ? '⏸' : '▶' }}
-            </button>
-            <button @click="next(cat)" aria-label="next">▶</button>
-          </div>
-        </div>
-
-        <div
-          class="carousel"
-          @mouseenter="pause(cat)"
-          @mouseleave="play(cat)"
+    <div class="cards-wrap">
+      <transition-group name="flip" tag="div" class="cards-grid">
+        <article
+          v-for="card in filteredCards"
+          :key="card._uid"
+          class="card"
+          @click="onCardClick(card)"
         >
-          <div
-            class="track"
-            :style="trackStyle(cat)"
-            ref="tracks"
-            @transitionend="onTransitionEnd(cat)"
-          >
-            <div
-              v-for="(card, idx) in viewItems(cat)"
-              :key="card._uid + '-' + idx"
-              class="card"
-              @click="onCardClick(card)"
-            >
-              <div class="card-media">
-                <img :src="card.image || placeholder" :alt="card.name" />
-              </div>
-              <div class="card-body">
-                <h3>{{ card.name }}</h3>
-                <p>{{ card.description || card.addr1 || '' }}</p>
-              </div>
-            </div>
+          <div class="card-media">
+            <img :src="card.image || placeholder" :alt="card.name" />
           </div>
-        </div>
+          <div class="card-body">
+            <h3>{{ card.name }}</h3>
+            <p>{{ card.description || card.addr1 || '' }}</p>
+            <small class="muted">{{ catLabels[card.type] || card.type || '기타' }}</small>
+          </div>
+        </article>
+      </transition-group>
 
+      <div v-if="filteredCards.length === 0" class="empty">
+        해당 카테고리에 항목이 없습니다.
+        <button @click="setCategory('all')">전체 보기</button>
       </div>
     </div>
   </section>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 const props = defineProps({
-  items: { type: Array, default: () => [] },
-  autoplayMs: { type: Number, default: 3500 }, // 기본 자동 재생 간격
-  visibleCards: { type: Number, default: 3 }
+  items: { type: Array, default: () => [] }
 })
 
-/* --- normalize items into categories --- */
-const items = computed(() => (props.items || []).map((i, idx) => {
-  const name = i.name || i.title || `무명-${idx}`
-  const desc = i.description || i.addr1 || ''
-  const image = i.image || i.firstimage || i.firstimage2 || ''
-  const type = i.type || (i.raw && (i.raw.lclsSystm2 || i.raw.lclsSystm1)) || '기타'
-  return { ...i, name, description: desc, image, type }
-}))
-
-const categories = computed(() => {
-  const order = ['12','VE','HS','EX','기타'] // 흔한 타입 우선 예시
-  const set = new Set(items.value.map(i => (i.type || '기타')))
-  const arr = Array.from(set)
-  // prefer order if present
-  arr.sort((a,b) => {
-    const ai = order.indexOf(a), bi = order.indexOf(b)
-    if (ai === -1 && bi === -1) return a.localeCompare(b)
-    if (ai === -1) return 1
-    if (bi === -1) return -1
-    return ai - bi
+/* normalize items once */
+const normalized = computed(() =>
+  (props.items || []).map((i, idx) => {
+    const name = i.name || i.title || `무명-${idx}`
+    const description = i.description || i.addr1 || ''
+    const image = i.image || i.firstimage || i.firstimage2 || ''
+    // use explicit type if present, else fallback to vendor codes or '기타'
+    const type = i.type || (i.raw && (i.raw.lclsSystm2 || i.raw.lclsSystm1)) || '기타'
+    return { ...i, name, description, image, type, _uid: i._uid ?? `card-${idx}-${i.contentid||i.id||idx}` }
   })
-  return arr
-})
+)
 
-const catLabels = {
-  '12': '관광지',
-  'VE': '야외 / 공원',
-  'HS': '역사 / 문화',
-  'EX': '체험 / 산업',
-  '기타': '기타'
-}
-
-/* --- grouped map --- */
-const grouped = computed(() => {
+/* build stable groups once to keep clicks light */
+const groups = computed(() => {
   const m = new Map()
-  for (const it of items.value) {
+  for (const it of normalized.value) {
     const k = it.type || '기타'
     if (!m.has(k)) m.set(k, [])
     m.get(k).push(it)
@@ -132,216 +90,68 @@ const grouped = computed(() => {
   return m
 })
 
-const activeCategory = ref(categories.value[0] || null)
-watch(categories, v => { if (!activeCategory.value) activeCategory.value = v[0] || null })
+const categories = computed(() => Array.from(groups.value.keys()))
 
-/* --- carousel state per category --- */
-const state = ref({})
-function ensureState(cat) {
-  if (!state.value[cat]) {
-    const arr = (grouped.value.get(cat) || []).slice(0)
-    // ensure at least visibleCards items by duplicating small sets
-    while (arr.length < props.visibleCards + 1) arr.push(...arr.slice(0))
-    // add synthetic uid for stable keys
-    arr.forEach((a,i)=>a._uid = a._uid ?? `${cat}-${i}-${a.contentid||a.id||i}`)
-    state.value[cat] = {
-      items: arr,
-      index: 0,
-      playing: true,
-      timer: null,
-      transitioning: false
-    }
-  }
-  return state.value[cat]
+const catLabels = {
+  '12': '관광지', 'VE': '야외/공원', 'HS': '역사/문화', 'EX': '체험/산업', '기타': '기타'
 }
 
-/* helpers */
-function viewItems(cat) {
-  const s = ensureState(cat)
-  // create visible window + duplicates appended for infinite scroll feel
-  return [...s.items, ...s.items]
-}
-function trackStyle(cat) {
-  const s = ensureState(cat)
-  const w = cardWidth()
-  const translate = -(s.index * (w + 16)) // gap 16
-  const dur = s.transitioning ? '500ms' : '0ms'
-  return { transform: `translateX(${translate}px)`, transitionDuration: dur }
-}
-function cardWidth() {
-  // responsive width: we'll rely on CSS clamp but JS needs approx value
-  return window.innerWidth < 700 ? 240 : 300
+/* active category state - starts as 'all' */
+const activeCategory = ref('all')
+
+function setCategory(cat) {
+  activeCategory.value = cat
+  // light-weight: no heavy reordering, computed filteredCards will update
 }
 
-/* autoplay controls */
-function play(cat) {
-  const s = ensureState(cat)
-  if (s.timer) return
-  s.playing = true
-  s.timer = setInterval(() => next(cat), props.autoplayMs)
-}
-function pause(cat) {
-  const s = ensureState(cat)
-  s.playing = false
-  if (s.timer) { clearInterval(s.timer); s.timer = null }
-}
-function togglePlay(cat) {
-  const s = ensureState(cat)
-  if (s.playing) pause(cat)
-  else play(cat)
-}
-function next(cat) {
-  const s = ensureState(cat)
-  s.transitioning = true
-  s.index = (s.index + 1) % s.items.length
-}
-function prev(cat) {
-  const s = ensureState(cat)
-  s.transitioning = true
-  s.index = (s.index - 1 + s.items.length) % s.items.length
-}
-function onTransitionEnd(cat) {
-  const s = ensureState(cat)
-  s.transitioning = false
-  // no extra logic for now (infinite achieved via duplicated rendering)
-}
-
-/* lifecycle */
-onMounted(() => {
-  for (const cat of categories.value) {
-    const s = ensureState(cat)
-    play(cat)
-  }
-  window.addEventListener('resize', onResize)
+/* filteredCards is computed and cheap to update */
+const filteredCards = computed(() => {
+  if (activeCategory.value === 'all') return normalized.value
+  return groups.value.get(activeCategory.value) ?? []
 })
-onBeforeUnmount(() => {
-  for (const k in state.value) {
-    const s = state.value[k]
-    if (s && s.timer) clearInterval(s.timer)
-  }
-  window.removeEventListener('resize', onResize)
-})
-function onResize() {
-  // placeholder for potential responsive recalculation
-}
 
-/* UI helpers */
-const placeholder = '' // 옵션: '/src/assets/placeholder.jpg'
-const tracks = ref(null)
-const carouselsRoot = ref(null)
+const placeholder = '' // 필요시 '/src/assets/placeholder.jpg'
+const sampleHero = computed(() => normalized.value.slice(0, 9))
+
 function onCardClick(card) {
-  // 추천: 클릭 시 상세 또는 지도 포커스 처리 (여기선 이벤트 발생)
-  // emit not available in <script setup> unless defineEmits; user can customize
-  // console.log('clicked', card)
+  // 클릭 후 동작(지도 포커스 / 모달 등)을 여기에 구현하세요.
 }
-
-/* small hero thumbnails */
-const sampleHero = computed(() => (items.value.slice(0,9)))
-function scrollToCarousel() {
-  if (!carouselsRoot.value) return
-  const el = carouselsRoot.value
-  el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
-
-/* utility: check playing state */
-function isPlaying(cat) { return ensureState(cat).playing }
-
-/* Expose for template usage */
-const viewItemsRef = viewItems
 </script>
 
 <style scoped>
-:root {
-  --accent: #2563eb;
-  --muted: #6b7280;
-  --card-bg: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(250,250,250,0.96));
-  --glass: rgba(255,255,255,0.6);
-}
+.landing-root { max-width:1280px; margin:0 auto; padding:20px; }
+.landing-hero { display:flex; gap:20px; align-items:center; justify-content:space-between; background:linear-gradient(180deg, rgba(37,99,235,0.06), rgba(255,255,255,0.02)); border-radius:12px; padding:20px; box-shadow:0 8px 24px rgba(2,6,23,0.04); }
+.hero-content h1 { margin:0 0 6px 0; font-size:clamp(1.3rem,2.2vw,2rem); }
+.hero-actions { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.hero-actions button { padding:8px 12px; border-radius:999px; border:1px solid #e6eefc; cursor:pointer; background:transparent; font-weight:700; }
+.hero-actions button.primary { background:#2563eb; color:#fff; border-color:#2563eb; box-shadow:0 8px 20px rgba(37,99,235,0.12); }
+.hero-actions button.active { background:#2563eb; color:#fff; border-color:#2563eb; }
 
-.landing-root { max-width: 1280px; margin: 0 auto; padding: 20px; }
+/* cards */
+.cards-wrap { margin-top:18px; max-height:65vh; overflow:auto; padding-right:6px; }
+.cards-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:18px; align-items:start; }
 
-.landing-hero {
-  display:flex;
-  gap:20px;
-  align-items: center;
-  justify-content: space-between;
-  background: linear-gradient(180deg, rgba(37,99,235,0.08), rgba(255,255,255,0.02));
-  border-radius: 16px;
-  padding: 28px;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(2,6,23,0.06);
-}
-.hero-content {
-  max-width: 55%;
-}
-.hero-content h1 {
-  margin:0 0 8px 0;
-  font-size: clamp(1.6rem, 2.6vw, 2.4rem);
-  color: #0f172a;
-}
-.hero-content p { margin:0 0 12px 0; color: var(--muted); font-size:1rem; }
-.hero-actions button {
-  margin-right:8px; padding:10px 14px; border-radius:10px; border:none; cursor:pointer; font-weight:700;
-}
-.hero-actions .primary { background:var(--accent); color:#fff; box-shadow:0 6px 18px rgba(37,99,235,0.18); }
-.hero-visual { width: 46%; display:flex; justify-content:flex-end; }
-.hero-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; filter: drop-shadow(0 6px 18px rgba(2,6,23,0.08)); }
-.hero-thumb { border-radius:10px; overflow:hidden; width:96px; height:64px; background:#f3f4f6; }
-.hero-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
-
-.landing-cats { display:flex; gap:8px; margin:18px 0; flex-wrap:wrap; }
-.landing-cats button {
-  background:transparent; border:1px solid #e6eefc; padding:8px 12px; border-radius:999px; cursor:pointer; font-weight:600;
-}
-.landing-cats button.active { background:var(--accent); color:#fff; border-color:var(--accent); box-shadow:0 6px 18px rgba(37,99,235,0.12); }
-
-.carousels { display:flex; flex-direction:column; gap:28px; }
-.carousel-wrap { display:block; opacity:0.0; transform:translateY(6px); transition: all 320ms ease; }
-.carousel-wrap[data-active="true"] { opacity:1; transform:none; }
-
-.carousel-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
-.carousel-header h2 { margin:0; font-size:1.1rem; color:#0b1220; }
-.controls button { margin-left:6px; background:#fff; border:1px solid #e6eefc; padding:6px 8px; border-radius:8px; cursor:pointer; }
-
-.carousel {
-  overflow:hidden;
-  background: var(--glass);
-  padding: 12px;
-  border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(6,8,23,0.04);
-  border: 1px solid rgba(15,23,42,0.04);
-}
-.track {
-  display:flex;
-  gap:16px;
-  align-items:stretch;
-  transition-timing-function: cubic-bezier(.2,.9,.2,1);
-  will-change: transform;
-}
-.card {
-  width: clamp(220px, 26vw, 320px);
-  flex: 0 0 auto;
-  background: var(--card-bg);
-  border-radius: 12px;
-  overflow:hidden;
-  cursor: pointer;
-  display:flex;
-  flex-direction:column;
-  box-shadow: 0 6px 18px rgba(2,6,23,0.06);
-  border: 1px solid rgba(15,23,42,0.04);
-}
-.card-media { height: 180px; overflow:hidden; background:#eef2ff; display:flex; align-items:center; justify-content:center; }
+.card { background: linear-gradient(180deg,#fff,#fbfbff); border-radius:12px; overflow:hidden; box-shadow:0 8px 18px rgba(3,7,18,0.06); border:1px solid rgba(15,23,42,0.04); display:flex; flex-direction:column; cursor:pointer; transition: transform 180ms ease; }
+.card:hover { transform: translateY(-6px); }
+.card-media { height:160px; background:#eef2ff; display:flex; align-items:center; justify-content:center; overflow:hidden; }
 .card-media img { width:100%; height:100%; object-fit:cover; display:block; }
-.card-body { padding:12px 14px; }
-.card-body h3 { margin:0 0 6px 0; font-size:1rem; color:#091026; }
-.card-body p { margin:0; color:var(--muted); font-size:0.9rem; }
+.card-body { padding:12px; }
+.card-body h3 { margin:0 0 6px 0; font-size:1rem; }
+.card-body p { margin:0 0 8px 0; color:#6b7280; font-size:0.92rem; }
+.muted { color:#94a3b8; font-size:0.8rem; }
 
-/* mobile */
-@media (max-width: 900px) {
-  .landing-hero { flex-direction:column; gap:14px; }
-  .hero-content { max-width:100%; }
+/* empty */
+.empty { padding:28px; text-align:center; color:#6b7280; }
+.empty button { margin-top:10px; padding:8px 12px; border-radius:8px; }
+
+/* transition-group FLIP move */
+.flip-move { transition: transform 420ms cubic-bezier(.2,.9,.2,1); }
+.flip-enter-from, .flip-leave-to { opacity:0.01; transform: translateY(8px); }
+.flip-enter-active, .flip-leave-active { transition: all 320ms cubic-bezier(.2,.9,.2,1); }
+
+@media (max-width:900px) {
+  .landing-hero { flex-direction:column; gap:12px; }
   .hero-visual { width:100%; justify-content:flex-start; }
-  .hero-grid { grid-template-columns:repeat(4,1fr); }
-  .card-media { height: 140px; }
+  .card-media { height:140px; }
 }
 </style>
