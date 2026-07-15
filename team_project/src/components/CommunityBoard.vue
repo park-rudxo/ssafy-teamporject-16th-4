@@ -5,8 +5,10 @@ const posts = ref([])
 const form = ref({ title: '', content: '', password: '', nickname: '' })
 const editingId = ref(null)
 const searchQuery = ref('')
+const searchScope = ref('all')
 const showBookmarksOnly = ref(false)
 const currentView = ref('list')
+const selectedPostId = ref(null)
 const deleteTargetId = ref(null)
 const deletePassword = ref('')
 const deleteError = ref('')
@@ -23,6 +25,26 @@ const filteredPosts = computed(() => {
     const title = post.title?.toLowerCase() || ''
     const content = post.content?.toLowerCase() || ''
     const nickname = (post.nickname || '익명').toLowerCase()
+
+    if (searchScope.value === 'title') return title.includes(query)
+    if (searchScope.value === 'nickname') return nickname.includes(query)
+    if (searchScope.value === 'content') return content.includes(query)
+    return title.includes(query) || content.includes(query) || nickname.includes(query)
+  })
+})
+
+const searchedPosts = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return []
+
+  return posts.value.filter(post => {
+    const title = post.title?.toLowerCase() || ''
+    const content = post.content?.toLowerCase() || ''
+    const nickname = (post.nickname || '익명').toLowerCase()
+
+    if (searchScope.value === 'title') return title.includes(query)
+    if (searchScope.value === 'nickname') return nickname.includes(query)
+    if (searchScope.value === 'content') return content.includes(query)
     return title.includes(query) || content.includes(query) || nickname.includes(query)
   })
 })
@@ -53,6 +75,16 @@ function resetForm() {
   closeDeleteModal()
 }
 
+function openPostDetail(post) {
+  selectedPostId.value = post.id
+  currentView.value = 'detail'
+}
+
+function closePostDetail() {
+  selectedPostId.value = null
+  currentView.value = 'list'
+}
+
 function openWriteForm() {
   resetForm()
   currentView.value = 'write'
@@ -60,6 +92,16 @@ function openWriteForm() {
 
 function openListView() {
   resetForm()
+  selectedPostId.value = null
+  currentView.value = 'list'
+}
+
+function openSearchResults() {
+  if (!searchQuery.value.trim()) return
+  currentView.value = 'search'
+}
+
+function openSearchInput() {
   currentView.value = 'list'
 }
 
@@ -165,17 +207,34 @@ function toggleBookmark(post) {
     <h3>익명 커뮤니티</h3>
 
     <div v-if="currentView === 'list'">
-      <input v-model="searchQuery" placeholder="검색어 입력" />
+      <div class="search-bar">
+        <input v-model="searchQuery" placeholder="검색어 입력" />
+        <button type="button" @click="openSearchResults" class="btn-search">검색</button>
+      </div>
+
+      <div class="search-scope">
+        <label for="search-scope">검색 범위</label>
+        <select id="search-scope" v-model="searchScope">
+          <option value="title">제목</option>
+          <option value="nickname">닉네임</option>
+          <option value="content">내용</option>
+          <option value="all">제목+내용</option>
+        </select>
+      </div>
+
       <label>
         <input type="checkbox" v-model="showBookmarksOnly" />
         북마크만 보기
       </label>
+
       <button type="button" @click="openWriteForm" class="btn-write">글 작성</button>
 
       <div v-for="post in filteredPosts" :key="post.id" class="post">
         <div class="post-header">
           <div>
-            <strong>{{ post.title }}</strong>
+            <button type="button" class="post-title-btn" @click="openPostDetail(post)">
+              {{ post.title }}
+            </button>
             <div class="post-meta">
               <span class="nickname">{{ post.nickname || '익명' }}</span>
               <small>{{ formatDate(post.createdAt) }}</small>
@@ -191,24 +250,88 @@ function toggleBookmark(post) {
             {{ post.bookmarked ? '★' : '☆' }}
           </button>
         </div>
+      </div>
+    </div>
 
-        <p>{{ post.content }}</p>
+    <div v-else-if="currentView === 'detail'" class="detail-view">
+      <button type="button" @click="closePostDetail" class="btn-list">목록 보기</button>
 
-        <div class="actions">
-          <button type="button" @click="startEdit(post)">수정</button>
-          <button type="button" @click="openDeleteModal(post)">삭제</button>
-        </div>
+      <div v-if="selectedPostId">
+        <div v-for="post in posts.filter(p => p.id === selectedPostId)" :key="post.id" class="detail-post">
+          <h4>{{ post.title }}</h4>
+          <div class="post-meta">
+            <span class="nickname">{{ post.nickname || '익명' }}</span>
+            <small>{{ formatDate(post.createdAt) }}</small>
+          </div>
+          <p>{{ post.content }}</p>
 
-        <div v-if="deleteTargetId === post.id" class="delete-password-form">
-          <p>비밀번호를 입력하세요:</p>
-          <p v-if="deleteError" class="error-text">{{ deleteError }}</p>
-          <input v-model="deletePassword" type="password" placeholder="비밀번호" />
           <div class="actions">
-            <button type="button" @click="confirmDelete">삭제</button>
-            <button type="button" @click="closeDeleteModal">취소</button>
+            <button type="button" @click="startEdit(post)">수정</button>
+            <button type="button" @click="openDeleteModal(post)">삭제</button>
+          </div>
+
+          <div v-if="deleteTargetId === post.id" class="delete-password-form">
+            <p>비밀번호를 입력하세요:</p>
+            <p v-if="deleteError" class="error-text">{{ deleteError }}</p>
+            <input v-model="deletePassword" type="password" placeholder="비밀번호" />
+            <div class="actions">
+              <button type="button" @click="confirmDelete">삭제</button>
+              <button type="button" @click="closeDeleteModal">취소</button>
+            </div>
           </div>
         </div>
       </div>
+    </div>
+
+    <div v-else-if="currentView === 'search'" class="search-view">
+      <button type="button" @click="openSearchInput" class="btn-list">목록 보기</button>
+
+      <div class="search-result-header">
+        <h4>검색 결과</h4>
+        <p>검색어: {{ searchQuery }}</p>
+      </div>
+
+      <div v-if="searchedPosts.length">
+        <div v-for="post in searchedPosts" :key="post.id" class="post">
+          <div class="post-header">
+            <div>
+              <strong>{{ post.title }}</strong>
+              <div class="post-meta">
+                <span class="nickname">{{ post.nickname || '익명' }}</span>
+                <small>{{ formatDate(post.createdAt) }}</small>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="bookmark-btn"
+              @click="toggleBookmark(post)"
+              :aria-label="post.bookmarked ? '북마크 해제' : '북마크 추가'"
+            >
+              {{ post.bookmarked ? '★' : '☆' }}
+            </button>
+          </div>
+
+          <p>{{ post.content }}</p>
+
+          <div class="actions">
+            <button type="button" @click="startEdit(post)">수정</button>
+            <button type="button" @click="openDeleteModal(post)">삭제</button>
+          </div>
+
+          <div v-if="deleteTargetId === post.id" class="delete-password-form">
+            <p>비밀번호를 입력하세요:</p>
+            <p v-if="deleteError" class="error-text">{{ deleteError }}</p>
+            <input v-model="deletePassword" type="password" placeholder="비밀번호" />
+            <div class="actions">
+              <button type="button" @click="confirmDelete">삭제</button>
+              <button type="button" @click="closeDeleteModal">취소</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p v-else>검색 결과가 없습니다.</p>
     </div>
 
     <div v-else class="write-view">
@@ -343,7 +466,7 @@ label input[type="checkbox"] {
 
 .nickname {
   font-size: 13px;
-  color: #000000;
+  color: #5a5a5a;
   font-weight: 600;
 }
 
@@ -356,6 +479,32 @@ label input[type="checkbox"] {
   margin: 10px 0;
   color: #555;
   line-height: 1.5;
+}
+
+.post-title-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #363636;
+  cursor: pointer;
+  text-align: left;
+}
+
+.post-title-btn:hover {
+  text-decoration: underline;
+}
+
+.detail-view {
+  margin-top: 10px;
+}
+
+.detail-post {
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 16px;
+  background: #fafafa;
 }
 
 .actions {
@@ -427,6 +576,66 @@ label input[type="checkbox"] {
   color: #b91c1c;
   margin: 6px 0 8px;
   font-size: 13px;
+}
+
+.search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.search-bar input {
+  flex: 1;
+}
+
+.btn-search {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  color: white;
+  background-color: #ff9800;
+}
+
+.btn-search:hover {
+  background-color: #f57c00;
+}
+
+.search-scope {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
+.search-scope label {
+  font-size: 14px;
+  color: #555;
+}
+
+.search-scope select {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.search-view {
+  margin-top: 10px;
+}
+
+.search-result-header {
+  margin-bottom: 12px;
+}
+
+.search-result-header h4 {
+  margin: 0 0 4px 0;
+}
+
+.search-result-header p {
+  margin: 0;
+  color: #666;
 }
 
 .write-view {
