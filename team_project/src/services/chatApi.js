@@ -1,13 +1,13 @@
 // src/services/chatApi.js
 const CHAT_ENDPOINT = '/.netlify/functions/chat'
 
-export async function sendChatMessage(message) {
+export async function sendChatMessage(message, history = []) {
   const response = await fetch(CHAT_ENDPOINT, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ message })
+    body: JSON.stringify({ message, history })
   })
 
   if (!response.ok) {

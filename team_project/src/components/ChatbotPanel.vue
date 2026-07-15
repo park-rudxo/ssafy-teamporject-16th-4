@@ -26,6 +26,13 @@ function toggleChat() {
   isOpen.value = !isOpen.value
 }
 
+function buildHistory() {
+  return messages.value
+    .filter((msg) => msg.role !== 'system')
+    .slice(-10)
+    .map((msg) => ({ role: msg.role, content: msg.content }))
+}
+
 async function sendMessage() {
   const text = input.value.trim()
   if (!text || isLoading.value) return
