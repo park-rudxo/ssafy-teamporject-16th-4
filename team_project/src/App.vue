@@ -4,7 +4,6 @@ import RegionOverview from './components/RegionOverview.vue'
 import CommunityBoard from './components/CommunityBoard.vue'
 import ChatbotPanel from './components/ChatbotPanel.vue'
 
-// 모든 JSON을 로드하고 서울 폴더만 사용
 const modules = import.meta.glob('./data/**/*.json', { eager: true })
 
 function asNumber(v) {
@@ -92,7 +91,7 @@ const activeTab = ref('map')
 
     <main class="main-area">
       <div class="map-tab-shell" v-if="activeTab === 'map'">
-        <RegionOverview :region="currentRegion" />
+        <RegionOverview :key="currentRegion.name" :region="currentRegion" />
       </div>
       <CommunityBoard v-else-if="activeTab === 'community'" />
       <ChatbotPanel v-else />

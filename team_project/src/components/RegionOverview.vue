@@ -128,10 +128,12 @@ function addToRoute(item) {
   if (exists) return
 
   routeStops.value.push(item)
+  updateMarkers()
 }
 
 function removeFromRoute(id) {
   routeStops.value = routeStops.value.filter(stop => stop.id !== id)
+  updateMarkers()
 }
 
 function moveRouteItem(index, direction) {
@@ -142,11 +144,13 @@ function moveRouteItem(index, direction) {
   const [target] = updated.splice(index, 1)
   updated.splice(nextIndex, 0, target)
   routeStops.value = updated
+  updateMarkers()
 }
 
 function seedRoute() {
   const initial = filteredPlaces.value.slice(0, 3).map(item => ({ ...item }))
   routeStops.value = initial
+  updateMarkers()
 }
 
 delete L.Icon.Default.prototype._getIconUrl
@@ -171,26 +175,43 @@ function initMap() {
   setTimeout(() => map.invalidateSize && map.invalidateSize(), 200)
 }
 
+function createRouteMarkerIcon(index) {
+  return L.divIcon({
+    html: `<div class="route-step-badge">${index + 1}</div>`,
+    className: '',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -10]
+  })
+}
+
 function createMarker(point, index = null, routeMode = false) {
-  const marker = L.circleMarker([point.lat, point.lng], {
-    radius: routeMode ? 10 : 8,
-    fillColor: routeMode ? '#0f766e' : getColorForType(point.type),
-    color: '#222',
-    weight: 1,
-    opacity: 1,
-    fillOpacity: 0.95
-  }).bindPopup(`
+  const popupHtml = `
     <strong>${point.name}</strong><br/>
     ${point.type ? `<em>${point.type}</em><br/>` : ''}
     ${point.description || ''}
-  `)
+  `
 
-  if (routeMode && index !== null) {
+  if (routeMode) {
+    const marker = L.marker([point.lat, point.lng], {
+      icon: createRouteMarkerIcon(index ?? 0)
+    }).bindPopup(popupHtml)
+
     marker.bindTooltip(`${index + 1}. ${point.name}`, {
       permanent: false,
       sticky: true
     })
+    return marker
   }
+
+  const marker = L.circleMarker([point.lat, point.lng], {
+    radius: 8,
+    fillColor: getColorForType(point.type),
+    color: '#222',
+    weight: 1,
+    opacity: 1,
+    fillOpacity: 0.95
+  }).bindPopup(popupHtml)
 
   return marker
 }
@@ -317,6 +338,21 @@ watch(
     setTimeout(() => map && map.invalidateSize && map.invalidateSize(), 200)
   },
   { deep: true }
+)
+
+watch(
+  () => routeStops.value,
+  () => {
+    updateMarkers()
+  },
+  { deep: true }
+)
+
+watch(
+  () => showRouteOnly.value,
+  () => {
+    updateMarkers()
+  }
 )
 </script>
 
