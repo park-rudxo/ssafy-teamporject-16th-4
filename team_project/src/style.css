@@ -8,8 +8,34 @@ body {
   margin: 0;
 }
 
+.leaflet-container {
+  font-family: inherit;
+}
+
+.leaflet-tooltip {
+  background: rgba(15, 23, 42, 0.92);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 10px;
+}
+
+.route-step-badge {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #0f766e;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.92rem;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  border: 2px solid #fff;
+}
+
 .app-shell {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
 }
@@ -28,26 +54,6 @@ body {
   border: 1px solid #ccc;
 }
 
-/* Layout */
-.content-grid {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 16px;
-  align-items: start;
-}
-
-/* Ensure main column stretches for map */
-.main-column .card.region-overview {
-  margin-bottom: 0;
-}
-
-/* Side column styling */
-.side-column .card {
-  position: sticky;
-  top: 20px;
-}
-
-/* Card */
 .card {
   background: white;
   border-radius: 12px;
@@ -56,7 +62,6 @@ body {
   margin-bottom: 16px;
 }
 
-/* Map */
 .map {
   width: 100%;
   height: 420px;
@@ -65,7 +70,6 @@ body {
   margin-bottom: 12px;
 }
 
-/* Form and posts */
 .form {
   display: flex;
   flex-direction: column;
@@ -80,23 +84,13 @@ textarea {
   border-radius: 8px;
 }
 
-/* Responsive: stack on small screens */
-@media (max-width: 900px) {
-  .content-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .side-column .card {
-    position: static;
-  }
-}
-/* Tabs */
 .tabs {
   display: flex;
   gap: 8px;
   margin: 12px 0;
   padding: 0 4px;
 }
+
 .tabs button {
   background: transparent;
   border: 1px solid #e2e8f0;
@@ -106,18 +100,21 @@ textarea {
   font-weight: 600;
   color: #111827;
 }
+
 .tabs button.active {
   background: #2563eb;
   color: #fff;
   border-color: #2563eb;
 }
 
-/* main area - full width for each tab */
 .main-area {
   display: block;
 }
 
-/* keep existing responsive rules intact */
+.map-tab-shell {
+  width: 100%;
+}
+
 @media (max-width: 900px) {
   .tabs {
     overflow-x: auto;
