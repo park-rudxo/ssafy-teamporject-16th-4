@@ -632,46 +632,46 @@ function toggleBookmark(post) {
       <button type="button" class="btn-list" @click="closePostDetail">목록 보기</button>
 
       <div v-if="selectedPost" class="detail-post">
-        <div class="detail-title-area">
-          <div>
-            <h4>{{ selectedPost.title }}</h4>
-            <div class="post-meta">
-              <span class="nickname">{{ selectedPost.nickname || '익명' }}</span>
-              <span class="category">{{ selectedPost.category }}</span>
-              <small>{{ formatDate(selectedPost.createdAt) }} · 조회 {{ selectedPost.views || 0 }} · 추천 {{ selectedPost.likes || 0 }}</small>
+        <header class="detail-header">
+          <h4 class="detail-title">{{ selectedPost.title }}</h4>
+
+          <div class="detail-meta">
+            <span class="nickname">{{ selectedPost.nickname || '익명' }}</span>
+            <span class="category">{{ selectedPost.category }}</span>
+            <small>{{ formatDate(selectedPost.createdAt) }} · 조회 {{ selectedPost.views || 0 }}</small>
+          </div>
+        </header>
+
+        <div class="divider"></div>
+
+        <div class="detail-content" v-html="selectedPost.content"></div>
+
+        <div class="divider"></div>
+
+        <!-- 본문 아래로 추천 버튼 이동 -->
+        <div class="detail-like-row">
+          <button type="button" class="detail-like-btn" :disabled="selectedPost.liked" @click="likePost(selectedPost)">
+            👍 추천 {{ selectedPost.likes || 0 }}
+          </button>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- 수정/삭제 버튼은 오른쪽 하단에 위치 -->
+        <div class="detail-stats-actions">
+          <div class="detail-actions">
+            <button type="button" @click="startEdit(selectedPost)" class="btn-small edit">수정</button>
+            <button type="button" @click="openDeleteModal(selectedPost)" class="btn-small delete">삭제</button>
+
+            <div v-if="deleteTargetId === selectedPost.id" class="delete-password-form">
+              <p>게시글 비밀번호를 입력해 주세요.</p>
+              <p v-if="deleteError" class="error-text">{{ deleteError }}</p>
+              <input v-model="deletePassword" type="password" placeholder="비밀번호" @keyup.enter="confirmDelete">
+              <div class="actions">
+                <button type="button" @click="confirmDelete">삭제</button>
+                <button type="button" @click="closeDeleteModal">취소</button>
+              </div>
             </div>
-          </div>
-
-          <div class="detail-actions-inline">
-            <button type="button" class="detail-share" @click="sharePost(selectedPost)">🔗 <span>공유</span></button>
-            <button type="button" class="detail-bookmark" @click="toggleBookmark(selectedPost)">
-              <span>{{ selectedPost.bookmarked ? '★' : '☆' }}</span>
-              <span class="label-text">북마크</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="content-body" v-html="selectedPost.content"></div>
-
-        <div class="detail-like-wrapper">
-          <button type="button" class="detail-like-btn" :disabled="selectedPost.liked" @click="likePost(selectedPost)">👍 추천 {{ selectedPost.likes || 0 }}</button>
-        </div>
-
-        <div class="actions">
-          <button type="button" @click="startEdit(selectedPost)">수정</button>
-          <button type="button" @click="openDeleteModal(selectedPost)">삭제</button>
-        </div>
-
-        <div v-if="deleteTargetId === selectedPost.id" class="delete-password-form">
-          <p>게시글 비밀번호를 입력해 주세요.</p>
-
-          <p v-if="deleteError" class="error-text">{{ deleteError }}</p>
-
-          <input v-model="deletePassword" type="password" placeholder="비밀번호" @keyup.enter="confirmDelete">
-
-          <div class="actions">
-            <button type="button" @click="confirmDelete">삭제</button>
-            <button type="button" @click="closeDeleteModal">취소</button>
           </div>
         </div>
       </div>
@@ -850,8 +850,25 @@ input:focus, select:focus {
   padding: 8px 16px; border: none; border-radius: 4px; color: #fff; font-weight: 500; white-space: nowrap; transition: background-color .2s, transform .2s;
 }
 .btn-write { background-color: #4caf50; } .btn-write:hover { background-color: #45a049; }
-.btn-list { margin-bottom: 15px; background-color: #2196f3; } .btn-list:hover { background-color: #0b7dda; }
+.btn-list { margin-bottom: 15px; background-color: #8c8e8f; } .btn-list:hover { background-color: #0b7dda; }
 .btn-search { background-color: #ff9800; } .btn-search:hover { background-color: #f57c00; }
+
+/* 페이지 하단 중앙에 고정된 "목록 보기" 버튼 */
+.btn-list {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 20px;
+  z-index: 1000;
+  padding: 10px 18px;
+  border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+
+/* 모바일에서 간격을 줄이거나 숨기려면 조정 */
+@media (max-width: 600px) {
+  .btn-list { bottom: 14px; padding: 8px 14px; }
+}
 
 .search-bar {display: flex; gap: 8px; align-items: center; margin-bottom: 10px;}
 .search-bar input { flex:1; }
@@ -913,7 +930,38 @@ input:focus, select:focus {
 
 /* detail / editor styles kept from original (unchanged except minor spacing) */
 .detail-view, .search-view, .write-view { margin-top:10px; }
-.detail-post { padding:18px; border:1px solid #eee; border-radius:6px; background:#fafafa; }
+.detail-post {
+  position: relative;
+  padding: 18px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  background: #fafafa;
+}
+.detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.detail-title { margin: 0; font-size: 20px; color: #222; }
+.detail-meta { color: #666; font-size: 13px; display:flex; gap:8px; align-items:center; }
+.divider { height: 1px; background: #ececec; margin: 14px 0; }
+
+/* 내용 영역 */
+.detail-content { color: #444; line-height: 1.7; margin-bottom: 8px; }
+
+/* 통계 + 액션 영역(하단) - 오른쪽 끝에 버튼 배치 */
+.detail-stats-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; position: relative; }
+.detail-stats { display:flex; align-items:center; gap:12px; }
+
+/* 작은 버튼 스타일(상세 하단 버튼) */
+.btn-small { padding: 8px 12px; border-radius:6px; border:1px solid #ddd; background:#fff; cursor:pointer; }
+.btn-small:hover { background:#f5f5f5; }
+.btn-danger { border-color:#f44336; background:#fef0ef; color:#b91c1c; }
+.btn-danger:hover { background:#fdecea; }
+
+/* 기존 큰 like 버튼 스타일(필요시 조정) */
+.detail-like-btn { padding:8px 12px; border-radius:8px; border:1px solid #dbdcdd8a; background:#fff; font-weight:700; cursor:pointer; }
+
 .detail-title-area { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
 .detail-title-area h4 { margin:0; color:#333; font-size:21px; }
 .detail-title-area .category {font-size: 12px; color: #666; font-weight: 600; margin-left: 8px;}
@@ -925,6 +973,68 @@ input:focus, select:focus {
 .detail-like-btn { display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:8px; border:1px solid #dbdcdd8a; background:#ffffff96; color:#111827; font-weight:700; font-size:15px; cursor:pointer; transition:transform .12s, box-shadow .12s; }
 .detail-like-btn:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,0.08); }
 .detail-like-btn:disabled { opacity:0.6; cursor:default; transform:none; box-shadow:none; }
+.detail-stats-actions { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.detail-stats { display:flex; align-items:center; justify-content:center; flex:1; }
+/* 본문(.detail-content) 바로 다음 나오는 구분선만 숨김 */
+.detail-content + .divider { display: none; }
+/* 수정/삭제 버튼 스타일(색상 조정) */
+.detail-actions { display:flex; gap:8px; align-items:center; justify-content:flex-end; }
+
+/* 본문 바로 아래 추천 버튼 중앙 배치 */
+.detail-like-row {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0;
+}
+
+.detail-like-row .detail-like-btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid #dbdcdd8a;
+  background: #fff;
+  font-weight:700;
+  cursor: pointer;
+}
+.detail-like-row .detail-like-btn:disabled { opacity:0.6; cursor:default; }
+.detail-post { position: relative; }
+
+.detail-actions {
+  position: static;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.detail-actions .btn-small {
+  padding:8px 12px;
+  border-radius:6px;
+  border:1px solid #cfd8dc;
+  background:#ffffff;
+  color:#1f2937; /* 수정 버튼 기본 텍스트 색 */
+  box-shadow: none;
+}
+
+.detail-actions .btn-small:hover { background:#f3f4f6; }
+
+/* 수정 버튼 (primary 스타일) */
+.detail-actions .btn-small.edit {
+  background: #219bff; /* 파란 배경 */
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.9);
+}
+.detail-actions .btn-small.edit:hover { background:#1e4fb8; }
+
+/* 삭제 버튼 (danger 스타일) */
+.detail-actions .btn-small.delete {
+  background: #ec3030;
+  color: #ffffff;
+  border-color: #ffffff;
+}
+.detail-actions .btn-small.delete:hover { background:#fdecea; }
+
 
 
 .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
@@ -1024,6 +1134,11 @@ input:focus, select:focus {
 }
 
 @media (max-width: 600px) {
+  .detail-stats-actions { flex-direction: column; align-items: stretch; gap:8px; }
+  .detail-actions { display:flex; gap:8px; justify-content:flex-end; }
+}
+
+@media (max-width: 600px) {
   .card { padding:14px; }
   .search-bar { flex-direction: column; align-items: stretch;}
   .btn-search { width:100%; }
@@ -1035,6 +1150,11 @@ input:focus, select:focus {
   .actions { flex-direction:column; }
   .detail-title-area { align-items:flex-start; }
 }
-
+/* 모바일: 카드 흐름으로 되돌림 */
+@media (max-width: 600px) {
+  .detail-actions {
+    justify-content: flex-end;
+  }
+}
 
 </style>
