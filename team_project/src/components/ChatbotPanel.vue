@@ -43,7 +43,7 @@ async function sendMessage() {
   isLoading.value = true
 
   try {
-    const answer = await sendChatMessage(text)
+    const answer = await sendChatMessage(text, buildHistory())
     messages.value.push({ role: 'assistant', content: answer })
   } catch (error) {
     const fallbackReply = buildFallbackReply(text)
