@@ -144,3 +144,219 @@ textarea {
   font-weight: 600;
 }
 .save-course-btn:hover { opacity: 0.95; }
+/* 저장 모달 및 버튼 스타일 */
+.save-course-btn {
+  background: #10b981;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.save-course-btn:hover { opacity: 0.95; }
+
+/* 저장된 코스 버튼(플래너 상단) */
+.planner-button {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.planner-button:hover { background: #eef2ff; }
+
+/* danger 버튼 */
+.danger {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.danger:hover { opacity: 0.9; }
+:root {
+  font-family: Arial, sans-serif;
+  color: #222;
+  background: #f5f7fb;
+}
+
+body {
+  margin: 0;
+}
+
+.leaflet-container {
+  font-family: inherit;
+}
+
+.leaflet-tooltip {
+  background: rgba(15, 23, 42, 0.92);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 10px;
+}
+
+.route-step-badge {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #0f766e;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.92rem;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  border: 2px solid #fff;
+}
+
+.app-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.controls select {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 16px;
+}
+
+.map {
+  width: 100%;
+  height: 420px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+input,
+textarea {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 0 4px;
+}
+
+.tabs button {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #111827;
+}
+
+.tabs button.active {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+.main-area {
+  display: block;
+}
+
+.map-tab-shell {
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .tabs {
+    overflow-x: auto;
+  }
+}
+
+/* 기존 파일 내용 유지 - 아래만 추가 */
+.place-chip.course {
+  border-style: dashed;
+  background: linear-gradient(180deg, #f0fff4, #ffffff);
+}
+
+/* 전체 앱 수준 버튼 스타일(저장 버튼 등) */
+.save-course-btn {
+  background: #10b981;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.save-course-btn:hover { opacity: 0.95; }
+
+.planner-button {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.planner-button:hover { background: #eef2ff; }
+
+.danger {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.danger:hover { opacity: 0.9; }
+
+/* 장소/코스 사이드바 전역 보완 */
+.route-planner {
+  font-size: 14px;
+}
+.category-chip {
+  padding: 6px 8px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+  margin-right: 6px;
+}
+.category-chip.active {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+.place-search {
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #e6e6e6;
+  width: 100%;
+  box-sizing: border-box;
+}

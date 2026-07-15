@@ -52,7 +52,6 @@ for (const key in modules) {
 
   const normalized = entries
     .map(e => {
-      // 여행코스 항목일 경우 stops 배열을 정규화해서 코스 객체로 보존
       if (e && Array.isArray(e.stops) && e.stops.length) {
         const course = normalizeFromItem(e, fallbackType) || {}
         course.isCourse = true
