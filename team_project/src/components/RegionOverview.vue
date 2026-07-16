@@ -287,6 +287,14 @@ function openSaveModal() {
   saveModalOpen.value = true
 }
 
+/* Google Maps directions URL helper */
+function makeGoogleDirectionsUrl(lat1, lng1, lat2, lng2, travelMode = 'walking') {
+  if (lat1 == null || lng1 == null || lat2 == null || lng2 == null) return ''
+  const origin = `${lat1},${lng1}`
+  const destination = `${lat2},${lng2}`
+  return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=${encodeURIComponent(travelMode)}`
+}
+
 function saveCourse() {
   if (isSaving.value) return
   isSaving.value = true
@@ -305,11 +313,28 @@ function saveCourse() {
       raw: s.raw ?? null
     }))
 
+    // 각 연속 구간에 대해 구글 길찾기 링크 생성
+    const legs = []
+    for (let i = 0; i < stops.length - 1; i++) {
+      const a = stops[i]
+      const b = stops[i + 1]
+      if (parseCoord(a.lat) != null && parseCoord(a.lng) != null && parseCoord(b.lat) != null && parseCoord(b.lng) != null) {
+        legs.push({
+          originId: a.id,
+          originName: a.name,
+          destId: b.id,
+          destName: b.name,
+          url: makeGoogleDirectionsUrl(a.lat, a.lng, b.lat, b.lng, 'walking')
+        })
+      }
+    }
+
     const newCourse = {
       id: Date.now(),
       name,
       description: desc,
       stops,
+      legs, // 추가된 필드: 각 구간의 구글 길찾기 링크들
       createdAt: new Date().toISOString()
     }
 
@@ -820,6 +845,15 @@ watch(
                   <h4>{{ c.name }}</h4>
                   <p class="description">{{ c.description || '상세 내용 없음' }}</p>
                   <small class="date">📅 {{ new Date(c.createdAt).toLocaleDateString() }}</small>
+
+                  <!-- 각 구간 링크 표시 -->
+                  <div v-if="c.legs && c.legs.length" class="saved-legs" style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
+                    <div v-for="(leg, i) in c.legs" :key="i">
+                      <a :href="leg.url" target="_blank" rel="noopener" style="text-decoration:none; color:#0f172a; font-weight:700;">
+                        🚶 {{ leg.originName }} → {{ leg.destName }}
+                      </a>
+                    </div>
+                  </div>
                 </div>
                 <div class="course-actions-group">
                   <button class="btn-action-small import-replace" @click="loadSavedCourse(c, true)">덮어쓰기</button>
@@ -1258,6 +1292,7 @@ watch(
 .btn-modal.cancel { background: #f1f5f9; color: #475569; }
 .btn-modal.confirm { background: #2563eb; color: #fff; }
 
+/* 스타일 계속 동일 (생략 가능) */
 /* 저장한 코스 리스트 */
 .saved-list-modern { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .saved-course-card {
