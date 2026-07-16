@@ -6,13 +6,13 @@ import 'leaflet/dist/leaflet.css'
 const emit = defineEmits(['selectCourse'])
 
 const typeColors = {
-  관광지: '#3b82f6',     // 밝은 블루
-  레포츠: '#10b981',     // 에메랄드
-  여행코스: '#8b5cf6',   // 퍼플
-  축제공연행사: '#f43f5e', // 로즈
-  숙박: '#f59e0b',       // 앰버
-  쇼핑: '#ec4899',       // 핑크
-  문화시설: '#06b6d4'     // 시안
+  관광지: '#3b82f6',   
+  레포츠: '#10b981',    
+  여행코스: '#8b5cf6',   
+  축제공연행사: '#f43f5e', 
+  숙박: '#f59e0b',       
+  쇼핑: '#ec4899',       
+  문화시설: '#06b6d4'     
 }
 
 const props = defineProps({

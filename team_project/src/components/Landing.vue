@@ -68,6 +68,37 @@
         <button class="empty-btn" @click="setCategory('all')">전체 보기</button>
       </div>
     </main>
+
+    <!-- Modal: 중간 크기 팝업 -->
+    <transition name="modal-fade">
+      <div
+        v-if="selectedCard"
+        class="modal-overlay"
+        @click="closeModal"
+        aria-modal="true"
+        role="dialog"
+      >
+        <div class="modal" @click.stop>
+          <button class="modal-close" @click="closeModal" aria-label="Close">✕</button>
+
+          <div class="modal-media" v-if="selectedCard.image">
+            <img :src="selectedCard.image || placeholder" :alt="selectedCard.name" />
+          </div>
+
+          <div class="modal-body">
+            <h2 class="modal-title">{{ selectedCard.name }}</h2>
+            <p class="modal-desc">{{ selectedCard.description || selectedCard.addr1 || '' }}</p>
+
+            <div class="modal-meta">
+              <div v-if="selectedCard.addr1"><strong>주소:</strong> {{ selectedCard.addr1 }}</div>
+              <div v-if="selectedCard.tel"><strong>전화:</strong> {{ selectedCard.tel }}</div>
+              <div v-if="selectedCard.type"><strong>카테고리:</strong> {{ catLabels[selectedCard.type] || selectedCard.type }}</div>
+              <div v-if="selectedCard.contentid"><strong>ID:</strong> {{ selectedCard.contentid }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
   </section>
 </template>
 
@@ -118,12 +149,20 @@ const filteredCards = computed(() => {
 const placeholder = '' // 필요시 경로 지정
 const sampleHero = computed(() => normalized.value.slice(0, 9))
 
+// Modal 상태 및 핸들러
+const selectedCard = ref(null)
+
 function onCardClick(card) {
-  // 필요한 동작: emit('select', card) 등으로 확장 가능
+  selectedCard.value = card
+}
+
+function closeModal() {
+  selectedCard.value = null
 }
 </script>
 
 <style scoped>
+/* 기존 스타일 유지 (생략 없이 포함) */
 /* Variables */
 :root {
   --bg: #0f1724;
@@ -319,6 +358,84 @@ function onCardClick(card) {
 .flip-enter-from, .flip-leave-to { opacity:0; transform: translateY(12px); }
 .flip-enter-active, .flip-leave-active { transition: all 320ms cubic-bezier(.2,.9,.2,1); }
 
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 7, 18, 0.55);
+  z-index: 1200;
+  padding: 24px;
+}
+
+.modal {
+  width: min(760px, 94%);
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 40px 100px rgba(2,6,23,0.32);
+  position: relative;
+  max-height: calc(100vh - 96px);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-media img {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  display: block;
+  background: #f3f4f6;
+}
+
+.modal-body {
+  padding: 18px 20px 28px 20px;
+  overflow: auto;
+}
+
+.modal-title {
+  margin: 0 0 8px 0;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.modal-desc {
+  margin: 0 0 12px 0;
+  color: var(--muted);
+}
+
+.modal-meta {
+  color: #374151;
+  font-size: 0.94rem;
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* Close button */
+.modal-close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  border: none;
+  background: rgba(0,0,0,0.06);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* modal transition */
+.modal-fade-enter-from { opacity: 0; transform: scale(0.98); }
+.modal-fade-enter-active { transition: all 180ms ease; }
+.modal-fade-leave-to { opacity: 0; transform: scale(0.98); }
+
 /* Responsive */
 @media (max-width: 960px) {
   .hero-right { width: 320px; max-width: 48%; }
@@ -332,5 +449,6 @@ function onCardClick(card) {
   .hero-right { width:100%; max-width:100%; }
   .collage { width:100%; grid-template-columns: repeat(3, 1fr); height: 96px; gap:8px; }
   .card-media { height:140px; }
+  .modal-media img { height: 180px; }
 }
 </style>
