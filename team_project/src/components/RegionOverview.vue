@@ -6,13 +6,13 @@ import 'leaflet/dist/leaflet.css'
 const emit = defineEmits(['selectCourse'])
 
 const typeColors = {
-  관광지: '#3b82f6',   
-  레포츠: '#10b981',    
-  여행코스: '#8b5cf6',   
-  축제공연행사: '#f43f5e', 
-  숙박: '#f59e0b',       
-  쇼핑: '#ec4899',       
-  문화시설: '#06b6d4'     
+  관광지: '#3b82f6',
+  레포츠: '#10b981',
+  여행코스: '#8b5cf6',
+  축제공연행사: '#f43f5e',
+  숙박: '#f59e0b',
+  쇼핑: '#ec4899',
+  문화시설: '#06b6d4'
 }
 
 const props = defineProps({
@@ -289,18 +289,15 @@ function openSaveModal() {
 
 /* Google Maps directions URL helper
    변경 사항:
-   - 기존 좌표 기반 동작은 유지
-   - 주소(address) 값이 있을 경우 주소를 우선으로 사용하여 길찾기 링크 생성
-   - origin/destination 파라미터으로 객체({lat,lng,address})를 받도록 변경
+   - travelMode 파라미터를 기본으로 전달하지 않음(생략하면 Google이 추천 모드를 선택)
+   - 기존 좌표 기반 동작은 유지 (주소가 있으면 주소 우선)
 */
-function makeGoogleDirectionsUrl(origin, destination, travelMode = 'walking') {
+function makeGoogleDirectionsUrl(origin, destination, travelMode) {
   const paramFor = (loc) => {
     if (!loc) return ''
-    // 주소가 문자열로 존재하면 주소 우선
     if (typeof loc.address === 'string' && loc.address.trim().length > 0) {
       return encodeURIComponent(loc.address.trim())
     }
-    // 주소가 없으면 좌표 사용 (lat,lng)
     if (loc.lat != null && loc.lng != null) {
       return encodeURIComponent(`${loc.lat},${loc.lng}`)
     }
@@ -310,7 +307,13 @@ function makeGoogleDirectionsUrl(origin, destination, travelMode = 'walking') {
   const o = paramFor(origin)
   const d = paramFor(destination)
   if (!o || !d) return ''
-  return `https://www.google.com/maps/dir/?api=1&origin=${o}&destination=${d}&travelmode=${encodeURIComponent(travelMode)}`
+
+  const base = `https://www.google.com/maps/dir/?api=1&origin=${o}&destination=${d}`
+  if (travelMode && typeof travelMode === 'string' && travelMode.trim().length > 0) {
+    return `${base}&travelmode=${encodeURIComponent(travelMode)}`
+  }
+  // travelmode 생략 -> Google이 추천(Recommended) 탭을 우선 표시
+  return base
 }
 
 function saveCourse() {
@@ -331,13 +334,12 @@ function saveCourse() {
       raw: s.raw ?? null
     }))
 
-    // 각 연속 구간에 대해 구글 길찾기 링크 생성 (주소 우선, 좌표 대체)
+    // 각 연속 구간에 대해 구글 길찾기 링크 생성 (주소 우선, travelmode 생략하여 추천 탭 우선)
     const legs = []
     for (let i = 0; i < stops.length - 1; i++) {
       const a = stops[i]
       const b = stops[i + 1]
 
-      // 가능한 주소 필드 우선 추출 (원본 raw에 addr1/addr2 등 있을 수 있음)
       const getAddressFromRaw = (s) => {
         if (!s) return null
         const r = s.raw ?? {}
@@ -367,7 +369,8 @@ function saveCourse() {
         address: getAddressFromRaw(b)
       }
 
-      const url = makeGoogleDirectionsUrl(originObj, destObj, 'walking')
+      // travelMode를 전달하지 않음 -> 추천 탭 우선
+      const url = makeGoogleDirectionsUrl(originObj, destObj)
       if (url) {
         legs.push({
           originId: a.id,
@@ -384,7 +387,7 @@ function saveCourse() {
       name,
       description: desc,
       stops,
-      legs, // 추가된 필드: 각 구간의 구글 길찾기 링크들 (주소 우선 생성)
+      legs, // 각 구간의 구글 길찾기 링크들 (추천 탭 우선)
       createdAt: new Date().toISOString()
     }
 
@@ -466,11 +469,11 @@ function initMap() {
   if (!mapRef.value) return
   if (map) map.remove()
 
-  map = L.map(mapRef.value, { 
+  map = L.map(mapRef.value, {
     zoomControl: false, // 커스텀 줌 컨트롤 배치를 위해 해제
-    preferCanvas: true 
+    preferCanvas: true
   }).setView([37.5665, 126.9780], 11)
-  
+
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
   }).addTo(map)
@@ -683,7 +686,7 @@ watch(
     <div class="trip-workspace">
       <!-- 1. 좌측: 장소 탐색 및 경로 편집 패널 (Scrollable) -->
       <aside class="sidebar-panel">
-        
+
         <!-- 검색 및 카테고리 필터링 영역 -->
         <div class="filter-section card">
           <div class="search-box">
@@ -694,7 +697,7 @@ watch(
               class="styled-search-input"
             />
           </div>
-          
+
           <div class="category-scroll-container">
             <button
               class="category-tag-chip"
@@ -736,11 +739,11 @@ watch(
           <div v-else class="timeline-container">
             <div v-for="(stop, index) in routeStops" :key="stop.id" class="timeline-item">
               <div class="timeline-line" v-if="index !== routeStops.length - 1"></div>
-              
+
               <div class="timeline-node" :style="{ backgroundColor: getColorForType(stop.type) }">
                 {{ index + 1 }}
               </div>
-              
+
               <div class="timeline-content">
                 <div class="timeline-info">
                   <h4>{{ stop.name }}</h4>
@@ -753,7 +756,7 @@ watch(
                 </div>
               </div>
             </div>
-            
+
             <div class="route-summary-bar">
               <span class="summary-label">요약 루트:</span>
               <p class="summary-text">{{ routeSummary }}</p>
@@ -766,16 +769,16 @@ watch(
           <div class="explorer-header">
             <h3>방문 가능한 명소</h3>
             <div class="map-view-toggles">
-              <button 
-                class="view-toggle-btn" 
-                :class="{ active: !showRouteOnly }" 
+              <button
+                class="view-toggle-btn"
+                :class="{ active: !showRouteOnly }"
                 @click="showRouteOnly = false"
               >
                 전체보기
               </button>
-              <button 
-                class="view-toggle-btn" 
-                :class="{ active: showRouteOnly }" 
+              <button
+                class="view-toggle-btn"
+                :class="{ active: showRouteOnly }"
                 @click="showRouteOnly = true"
               >
                 경로만
@@ -788,9 +791,9 @@ watch(
               v-for="place in paginatedPlaces"
               :key="place.id"
               class="modern-place-card"
-              :class="{ 
+              :class="{
                 'selected': routeStops.some(stop => stop.id === place.id),
-                'course-type': place.isCourse 
+                'course-type': place.isCourse
               }"
               @click="togglePlace(place)"
             >
@@ -826,8 +829,8 @@ watch(
       <main class="map-container-wrap">
         <!-- 지도 상단 플로팅 지도 레이어 토글 칩 -->
         <div class="map-floating-bar">
-          <button 
-            class="map-chip" 
+          <button
+            class="map-chip"
             :class="{ active: selectedTypes.size === typeKeys.length && !showRouteOnly }"
             @click="toggleAllTypes"
           >
@@ -888,7 +891,7 @@ watch(
               <span class="empty-icon">📁</span>
               <p>아직 저장한 나만의 코스가 없습니다.</p>
             </div>
-            
+
             <ul class="saved-list-modern" v-else>
               <li v-for="c in savedCourses" :key="c.id" class="saved-course-card">
                 <div class="course-meta">
@@ -896,11 +899,11 @@ watch(
                   <p class="description">{{ c.description || '상세 내용 없음' }}</p>
                   <small class="date">📅 {{ new Date(c.createdAt).toLocaleDateString() }}</small>
 
-                  <!-- 각 구간 링크 표시 -->
+                  <!-- 각 구간 링크 표시 (아이콘을 추천으로 변경) -->
                   <div v-if="c.legs && c.legs.length" class="saved-legs" style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
                     <div v-for="(leg, i) in c.legs" :key="i">
                       <a :href="leg.url" target="_blank" rel="noopener" style="text-decoration:none; color:#0f172a; font-weight:700;">
-                        🚶 {{ leg.originName }} → {{ leg.destName }}
+                        🔀 {{ leg.originName }} → {{ leg.destName }}
                       </a>
                     </div>
                   </div>
