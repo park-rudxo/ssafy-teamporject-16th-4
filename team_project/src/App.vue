@@ -97,7 +97,6 @@ const activeTab = ref('landing') // 기본을 랜딩으로 설정
       <button :class="{ active: activeTab === 'landing' }" @click="activeTab = 'landing'">홈</button>
       <button :class="{ active: activeTab === 'map' }" @click="activeTab = 'map'">지도</button>
       <button :class="{ active: activeTab === 'community' }" @click="activeTab = 'community'">커뮤니티</button>
-      <button :class="{ active: activeTab === 'chat' }" @click="activeTab = 'chat'">챗봇</button>
     </nav>
 
     <main class="main-area">
@@ -110,7 +109,8 @@ const activeTab = ref('landing') // 기본을 랜딩으로 설정
       </div>
 
       <CommunityBoard v-else-if="activeTab === 'community'" />
-      <ChatbotPanel v-else />
     </main>
+
+    <ChatbotPanel />
   </div>
 </template>
