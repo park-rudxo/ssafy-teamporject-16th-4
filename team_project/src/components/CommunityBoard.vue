@@ -38,6 +38,10 @@ const errors = ref({
   content: "",
   password: "",
 });
+// reply UI 상태
+const replyingToCommentId = ref(null);
+const replyDraft = ref({ nickname: "", password: "", content: "" });
+
 const selectedCategoryFilter = ref("all");
 const fontSizeValue = ref("3");
 const textColorValue = ref("#111827");
@@ -396,36 +400,21 @@ function resetCommentForm() {
   resetCommentPasswordPrompt();
 }
 
-function submitComment(postId) {
+function submitComment(postId, parentId = null) {
   const post = getPostByParam(postId);
-  if (!post) {
-    alert("게시글을 찾을 수 없습니다.");
-    return;
-  }
-  commentErrors.value = {
-    content: "",
-    password: "",
-  };
-  // 편집 중이면 editingCommentContent 사용, 새 댓글이면 commentForm.content 사용
-  const content = editingCommentId.value !== null
-    ? (editingCommentContent.value || "").trim()
-    : (commentForm.value.content || "").trim();
-  const password = String((commentForm.value.password ?? "").trim());
-  const nickname = (commentForm.value.nickname || "").trim() || "익명";
+  if (!post) { alert("게시글을 찾을 수 없습니다."); return; }
 
-  if (!content) {
-    commentErrors.value.content = "댓글 내용을 입력해 주세요.";
-    return;
-  }
+  commentErrors.value = { content: "", password: "" };
 
+  // 편집(댓글 수정) 처리
   if (editingCommentId.value !== null) {
-    // 수정: 기존 댓글의 비밀번호와 비교
-    const c = post.comments.find((x) => x.id === editingCommentId.value);
+    const c = (post.comments || []).find((x) => x.id === editingCommentId.value);
     if (!c) {
       alert("수정할 댓글을 찾을 수 없습니다.");
       resetCommentForm();
       return;
     }
+    const password = String((commentForm.value.password ?? "").trim());
     if (!password) {
       commentErrors.value.password = "수정용 비밀번호를 입력해 주세요.";
       return;
@@ -434,31 +423,48 @@ function submitComment(postId) {
       alert("비밀번호가 일치하지 않습니다.");
       return;
     }
+    const content = (editingCommentContent.value || "").trim();
+    if (!content) {
+      commentErrors.value.content = "댓글 내용을 입력해 주세요.";
+      return;
+    }
     c.content = content;
     c.updatedAt = new Date().toISOString();
     savePosts();
     resetCommentForm();
-    // 수정 완료 알림 제거
     return;
   }
 
-  // 새 댓글 등록
+  // 새 댓글/대댓글 등록
+  const isReply = parentId !== null && replyingToCommentId.value === parentId;
+  const content = isReply ? (replyDraft.value.content || "").trim() : (commentForm.value.content || "").trim();
+  const password = String((isReply ? replyDraft.value.password : commentForm.value.password || "").trim());
+  const nickname = isReply ? (replyDraft.value.nickname.trim() || "익명") : (commentForm.value.nickname.trim() || "익명");
+
+  if (!content) {
+    commentErrors.value.content = "댓글 내용을 입력해 주세요.";
+    return;
+  }
   if (!password) {
     commentErrors.value.password = "삭제·수정용 비밀번호를 입력해 주세요.";
     return;
   }
+
   post.comments = Array.isArray(post.comments) ? post.comments : [];
   post.comments.push({
     id: Date.now(),
+    parentId: parentId,
     nickname,
     password,
     content,
     createdAt: new Date().toISOString(),
     updatedAt: null,
   });
+
   savePosts();
   resetCommentForm();
-  // 등록 완료 알림 제거
+  replyingToCommentId.value = null;
+  replyDraft.value = { nickname: "", password: "", content: "" };
 }
 
 // 댓글 수정/삭제 요청: 인라인 비밀번호 입력 UI를 표시하도록 상태만 셋팅
@@ -539,6 +545,20 @@ function cancelEditComment() {
   editingCommentContent.value = "";
   commentForm.value.password = "";
 }
+function openReplyForm(commentId) {
+  replyingToCommentId.value = commentId;
+  // 초기화
+  replyDraft.value = { nickname: "", password: "", content: "" };
+  nextTick(() => {
+    const el = document.querySelector(".comment-reply textarea, .comment-password-input");
+    if (el) el.focus();
+  });
+}
+function cancelReply() {
+  replyingToCommentId.value = null;
+  replyDraft.value = { nickname: "", password: "", content: "" };
+}
+
 function matchesSearch(post, query) {
   const title = (post.title || "").toLowerCase();
   const content = getPlainText(post.content || "").toLowerCase();
@@ -1163,12 +1183,10 @@ function toggleBookmark(post) {
         <section class="comments-section">
           <h4>댓글 ({{ selectedPost?.comments?.length || 0 }})</h4>
 
-          <div
-            v-if="selectedPost && selectedPost.comments && selectedPost.comments.length"
-            class="comments-list"
-          >
+          <div v-if="selectedPost && selectedPost.comments && selectedPost.comments.length" class="comments-list">
+            <!-- 최상위 댓글만 나열 -->
             <div
-              v-for="c in selectedPost.comments"
+              v-for="c in (selectedPost.comments || []).filter(x => !x.parentId)"
               :key="c.id"
               class="comment-item"
             >
@@ -1183,137 +1201,128 @@ function toggleBookmark(post) {
 
                 <div class="comment-actions">
                   <template v-if="editingCommentId === c.id">
-                    <button
-                      type="button"
-                      class="btn-comment-save"
-                      @click.stop="saveEditedComment(selectedPost.id)"
-                      title="저장"
-                    >
-                      ✅ 저장
-                    </button>
-                    <button
-                      type="button"
-                      class="btn-comment-cancel"
-                      @click.stop="cancelEditComment"
-                      title="취소"
-                    >
-                      ✖ 취소
-                    </button>
+                    <button type="button" class="btn-comment-save" @click.stop="saveEditedComment(selectedPost.id)" title="저장">✅ 저장</button>
+                    <button type="button" class="btn-comment-cancel" @click.stop="cancelEditComment" title="취소">✖ 취소</button>
                   </template>
 
                   <template v-else>
-                    <button
-                      type="button"
-                      class="btn-comment-edit"
-                      @click.stop="requestCommentPassword('edit', selectedPost.id, c.id)"
-                      title="댓글 수정"
-                    >
+                    <button type="button" class="btn-comment-edit" @click.stop="requestCommentPassword('edit', selectedPost.id, c.id)" title="댓글 수정">
                       <span class="icon">✏️</span><span class="label">수정</span>
                     </button>
-                    <button
-                      type="button"
-                      class="btn-comment-delete"
-                      @click.stop="requestCommentPassword('delete', selectedPost.id, c.id)"
-                      title="댓글 삭제"
-                    >
+                    <button type="button" class="btn-comment-delete" @click.stop="requestCommentPassword('delete', selectedPost.id, c.id)" title="댓글 삭제">
                       <span class="icon">🗑️</span><span class="label">삭제</span>
+                    </button>
+                    <button type="button" class="btn-comment-reply" @click.stop.prevent="openReplyForm(c.id)" title="답글">
+                      💬 답글
                     </button>
                   </template>
                 </div>
               </div>
+
               <!-- 비밀번호 입력 (인라인) -->
-              <div
-                v-if="commentPasswordPromptId === c.id && commentPasswordMode !== null"
-                class="comment-password-area"
-                style="margin:8px 0; display:flex; gap:8px; align-items:center;"
-              >
-                <input
-                  class="comment-password-input"
-                  v-model="commentPasswordPromptValue"
-                  type="password"
-                  placeholder="비밀번호를 입력해 주세요"
-                  @keyup.enter="confirmCommentPassword"
-                />
-                <button type="button" class="btn-password-confirm" @click="confirmCommentPassword">
-                  확인
-                </button>
-                <button type="button" class="btn-password-cancel" @click="resetCommentPasswordPrompt">
-                  취소
-                </button>
+              <div v-if="commentPasswordPromptId === c.id && commentPasswordMode !== null" class="comment-password-area" style="margin:8px 0; display:flex; gap:8px; align-items:center;">
+                <input class="comment-password-input" v-model="commentPasswordPromptValue" type="password" placeholder="비밀번호를 입력해 주세요" @keyup.enter="confirmCommentPassword" />
+                <button type="button" class="btn-password-confirm" @click="confirmCommentPassword">확인</button>
+                <button type="button" class="btn-password-cancel" @click="resetCommentPasswordPrompt">취소</button>
               </div>
 
               <!-- 댓글 본문 또는 편집 textarea -->
               <div v-if="editingCommentId === c.id" class="comment-editing" style="margin-top:8px">
-                <textarea
-                  v-model="editingCommentContent"
-                  rows="4"
-                  class="comment-textarea"
-                ></textarea>
+                <textarea v-model="editingCommentContent" rows="4" class="comment-textarea"></textarea>
               </div>
               <div v-else class="comment-body" v-html="c.content" style="margin-top:8px"></div>
+
+              <!-- 인라인 답글 폼 -->
+              <div v-if="replyingToCommentId === c.id" class="reply-form" style="margin-top:8px; padding-left:12px;">
+                <div class="comment-meta-row" style="display:flex; gap:8px; align-items:center; justify-content:flex-start;">
+                  <input v-model="replyDraft.nickname" type="text" placeholder="닉네임 (선택)" class="meta-nickname" />
+                  <input v-model="replyDraft.password" type="password" placeholder="비밀번호 (필수)" class="meta-password" />
+                </div>
+                <div style="margin-top:8px">
+                  <textarea v-model="replyDraft.content" rows="3" placeholder="답글을 입력하세요" class="comment-textarea"></textarea>
+                </div>
+                <p v-if="commentErrors.content" class="field-error">{{ commentErrors.content }}</p>
+                <p v-if="commentErrors.password" class="field-error">{{ commentErrors.password }}</p>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                  <button type="button" class="btn-comment-submit" @click="submitComment(selectedPost.id, c.id)">작성</button>
+                  <button type="button" class="btn-comment-cancel" @click="cancelReply" style="background:#ddd; color:#000; padding:8px 14px; border-radius:8px; border:none;">취소</button>
+                </div>
+              </div>
+
+              <!-- 대댓글들 렌더 -->
+              <div v-for="r in (selectedPost.comments || []).filter(x => x.parentId === c.id)" :key="r.id" class="comment-reply" style="margin-left:18px; margin-top:12px; padding-left:6px; border-left:2px solid rgba(0,0,0,0.04);">
+                <div class="comment-meta">
+                  <div class="meta-left">
+                    <strong class="comment-nickname">{{ r.nickname || "익명" }}</strong>
+                    <small class="comment-time">{{ formatDateShort(r.createdAt) }} <span v-if="r.updatedAt"> · (수정됨)</span></small>
+                  </div>
+                  <div class="comment-actions">
+                    <template v-if="editingCommentId === r.id">
+                      <button type="button" class="btn-comment-save" @click.stop="saveEditedComment(selectedPost.id)" title="저장">✅ 저장</button>
+                      <button type="button" class="btn-comment-cancel" @click.stop="cancelEditComment" title="취소">✖ 취소</button>
+                    </template>
+                    <template v-else>
+                      <button type="button" class="btn-comment-edit" @click.stop="requestCommentPassword('edit', selectedPost.id, r.id)" title="댓글 수정">
+                        <span class="icon">✏️</span><span class="label">수정</span>
+                      </button>
+                      <button type="button" class="btn-comment-delete" @click.stop="requestCommentPassword('delete', selectedPost.id, r.id)" title="댓글 삭제">
+                        <span class="icon">🗑️</span><span class="label">삭제</span>
+                      </button>
+                      <button type="button" class="btn-comment-reply" @click.stop.prevent="openReplyForm(c.id)" title="답글">
+                        💬 답글
+                      </button>
+                    </template>
+                  </div>
+                </div>
+
+                <!-- moved: 비밀번호 입력 (인라인) for reply — 메타 아래에 렌더되므로 한 줄 아래에 표시됩니다 -->
+                <div
+                  v-if="commentPasswordPromptId === r.id && commentPasswordMode !== null"
+                  class="comment-password-area"
+                >
+                  <input
+                    class="comment-password-input"
+                    v-model="commentPasswordPromptValue"
+                    type="password"
+                    placeholder="비밀번호를 입력해 주세요"
+                    @keyup.enter="confirmCommentPassword"
+                  />
+                  <button type="button" class="btn-password-confirm" @click="confirmCommentPassword">확인</button>
+                  <button type="button" class="btn-password-cancel" @click="resetCommentPasswordPrompt">취소</button>
+                </div>
+
+                <div v-if="editingCommentId === r.id" class="comment-editing" style="margin-top:8px">
+                  <textarea v-model="editingCommentContent" rows="3" class="comment-textarea"></textarea>
+                </div>
+                <div v-else class="comment-body" v-html="r.content" style="margin-top:8px"></div>
+              </div>
             </div>
           </div>
 
-          <!-- 댓글 작성/수정 폼 -->
+          <!-- 댓글 작성/수정 폼 (최상위 댓글) -->
           <div class="comment-form" style="margin-top: 12px">
             <h5>{{ editingCommentId !== null ? "댓글 수정" : "댓글 작성" }}</h5>
 
-            <div
-              class="comment-meta-row"
-              style="display:flex; gap:8px; align-items:center; justify-content:flex-start;"
-            >
-              <input
-                v-model="commentForm.nickname"
-                type="text"
-                placeholder="닉네임 (선택)"
-                class="meta-nickname"
-              />
-              <input
-                v-model="commentForm.password"
-                type="password"
-                placeholder="비밀번호 (수정/삭제용)"
-                class="meta-password"
-              />
+            <div class="comment-meta-row" style="display:flex; gap:8px; align-items:center; justify-content:flex-start;">
+              <input v-model="commentForm.nickname" type="text" placeholder="닉네임 (선택)" class="meta-nickname" />
+              <input v-model="commentForm.password" type="password" placeholder="비밀번호 (수정/삭제용)" class="meta-password" />
             </div>
 
             <div class="comment-input" style="margin-top:8px">
               <template v-if="editingCommentId !== null">
-                <textarea
-                  v-model="editingCommentContent"
-                  rows="4"
-                  placeholder="댓글을 입력하세요"
-                  class="comment-textarea"
-                ></textarea>
+                <textarea v-model="editingCommentContent" rows="4" placeholder="댓글을 입력하세요" class="comment-textarea"></textarea>
               </template>
               <template v-else>
-                <textarea
-                  v-model="commentForm.content"
-                  rows="4"
-                  placeholder="댓글을 입력하세요"
-                  class="comment-textarea"
-                ></textarea>
+                <textarea v-model="commentForm.content" rows="4" placeholder="댓글을 입력하세요" class="comment-textarea"></textarea>
               </template>
             </div>
 
             <p v-if="commentErrors.content" class="field-error">{{ commentErrors.content }}</p>
             <p v-if="commentErrors.password" class="field-error">{{ commentErrors.password }}</p>
 
-            <div style="display:flex; gap:8px; margin-top:8px; justify-content:flex-start;">
-              <button
-                type="button"
-                class="btn-comment-submit"
-                @click="submitComment(selectedPost.id)"
-              >
-                {{ editingCommentId !== null ? "수정하기" : "작성하기" }}
-              </button>
-              <button
-                v-if="editingCommentId !== null"
-                type="button"
-                @click="cancelEditComment"
-                style="background:#ddd; color:#000; padding:8px 14px; border-radius:8px; border:none;"
-              >
-                취소
-              </button>
+            <div style="display:flex; gap:8px; margin-top:8px; justify-content:flex-end;">
+              <button type="button" class="btn-comment-submit" @click="submitComment(selectedPost.id)">{{ editingCommentId !== null ? "수정하기" : "작성하기" }}</button>
+              <button v-if="editingCommentId !== null" type="button" @click="cancelEditComment" style="background:#ddd; color:#000; padding:8px 14px; border-radius:8px; border:none;">취소</button>
             </div>
           </div>
         </section>
@@ -2570,7 +2579,22 @@ select:focus {
 }
 .btn-comment-cancel:hover { transform: translateY(-2px); }
 
-.comment-password-area { gap:8px; }
+.comment-password-area {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0;
+  width: 100%;
+}
+.comment-password-input {
+  flex: 1 1 220px;
+  min-width: 140px;
+  padding: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
 
 /* confirm (확인) - primary */
 .btn-password-confirm {
@@ -2607,10 +2631,18 @@ select:focus {
 .btn-password-cancel:hover { background:#f8fafc; transform:translateY(-2px); box-shadow:0 6px 14px rgba(16,24,40,0.06); }
 .btn-password-cancel:active { transform:translateY(-1px); }
 
+/* reply-form 안의 취소 버튼만 작게 */
+.reply-form .btn-comment-cancel {
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 6px;
+  min-width: 40px;
+}
 
 /* 작은 아이콘 정렬 */
 .comment-actions .icon { font-size: 14px; line-height: 1; }
 .comment-actions .label { display: inline-block; }
+.comment-actions-row { display:flex; gap:8px; margin-top:8px; justify-content:flex-end; }
 
 .sr-only {
   position: absolute;
