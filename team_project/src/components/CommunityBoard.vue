@@ -1273,27 +1273,24 @@ function toggleBookmark(post) {
                       </button>
                     </template>
                   </div>
-                  <!-- 비밀번호 입력 (인라인) for reply -->
-                  <div
-                    v-if="commentPasswordPromptId === r.id && commentPasswordMode !== null"
-                    class="comment-password-area"
-                    style="margin:8px 0; display:flex; gap:8px; align-items:center;"
-                  >
-                    <input
-                      class="comment-password-input"
-                      v-model="commentPasswordPromptValue"
-                      type="password"
-                      placeholder="비밀번호를 입력해 주세요"
-                      @keyup.enter="confirmCommentPassword"
-                    />
-                    <button type="button" class="btn-password-confirm" @click="confirmCommentPassword">
-                      확인
-                    </button>
-                    <button type="button" class="btn-password-cancel" @click="resetCommentPasswordPrompt">
-                      취소
-                    </button>
-                  </div>
                 </div>
+
+                <!-- moved: 비밀번호 입력 (인라인) for reply — 메타 아래에 렌더되므로 한 줄 아래에 표시됩니다 -->
+                <div
+                  v-if="commentPasswordPromptId === r.id && commentPasswordMode !== null"
+                  class="comment-password-area"
+                >
+                  <input
+                    class="comment-password-input"
+                    v-model="commentPasswordPromptValue"
+                    type="password"
+                    placeholder="비밀번호를 입력해 주세요"
+                    @keyup.enter="confirmCommentPassword"
+                  />
+                  <button type="button" class="btn-password-confirm" @click="confirmCommentPassword">확인</button>
+                  <button type="button" class="btn-password-cancel" @click="resetCommentPasswordPrompt">취소</button>
+                </div>
+
                 <div v-if="editingCommentId === r.id" class="comment-editing" style="margin-top:8px">
                   <textarea v-model="editingCommentContent" rows="3" class="comment-textarea"></textarea>
                 </div>
@@ -2582,7 +2579,22 @@ select:focus {
 }
 .btn-comment-cancel:hover { transform: translateY(-2px); }
 
-.comment-password-area { gap:8px; }
+.comment-password-area {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0;
+  width: 100%;
+}
+.comment-password-input {
+  flex: 1 1 220px;
+  min-width: 140px;
+  padding: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
 
 /* confirm (확인) - primary */
 .btn-password-confirm {
