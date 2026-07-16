@@ -287,6 +287,32 @@ function openSaveModal() {
   saveModalOpen.value = true
 }
 
+/* Google Maps directions URL helper
+   변경 사항:
+   - 기존 좌표 기반 동작은 유지
+   - 주소(address) 값이 있을 경우 주소를 우선으로 사용하여 길찾기 링크 생성
+   - origin/destination 파라미터으로 객체({lat,lng,address})를 받도록 변경
+*/
+function makeGoogleDirectionsUrl(origin, destination, travelMode = 'walking') {
+  const paramFor = (loc) => {
+    if (!loc) return ''
+    // 주소가 문자열로 존재하면 주소 우선
+    if (typeof loc.address === 'string' && loc.address.trim().length > 0) {
+      return encodeURIComponent(loc.address.trim())
+    }
+    // 주소가 없으면 좌표 사용 (lat,lng)
+    if (loc.lat != null && loc.lng != null) {
+      return encodeURIComponent(`${loc.lat},${loc.lng}`)
+    }
+    return ''
+  }
+
+  const o = paramFor(origin)
+  const d = paramFor(destination)
+  if (!o || !d) return ''
+  return `https://www.google.com/maps/dir/?api=1&origin=${o}&destination=${d}&travelmode=${encodeURIComponent(travelMode)}`
+}
+
 function saveCourse() {
   if (isSaving.value) return
   isSaving.value = true
@@ -305,11 +331,60 @@ function saveCourse() {
       raw: s.raw ?? null
     }))
 
+    // 각 연속 구간에 대해 구글 길찾기 링크 생성 (주소 우선, 좌표 대체)
+    const legs = []
+    for (let i = 0; i < stops.length - 1; i++) {
+      const a = stops[i]
+      const b = stops[i + 1]
+
+      // 가능한 주소 필드 우선 추출 (원본 raw에 addr1/addr2 등 있을 수 있음)
+      const getAddressFromRaw = (s) => {
+        if (!s) return null
+        const r = s.raw ?? {}
+        const candidates = [
+          r?.addr1,
+          r?.addr2,
+          r?.address,
+          r?.roadAddr,
+          r?.도로명주소,
+          s.description,
+          s.name
+        ]
+        for (const c of candidates) {
+          if (typeof c === 'string' && c.trim()) return c.trim()
+        }
+        return null
+      }
+
+      const originObj = {
+        lat: parseCoord(a.lat),
+        lng: parseCoord(a.lng),
+        address: getAddressFromRaw(a)
+      }
+      const destObj = {
+        lat: parseCoord(b.lat),
+        lng: parseCoord(b.lng),
+        address: getAddressFromRaw(b)
+      }
+
+      const url = makeGoogleDirectionsUrl(originObj, destObj, 'walking')
+      if (url) {
+        legs.push({
+          originId: a.id,
+          originName: a.name,
+          destId: b.id,
+          destName: b.name,
+          url
+        })
+      }
+    }
+
     const newCourse = {
       id: Date.now(),
       name,
       description: desc,
       stops,
+      legs, // 추가된 필드: 각 구간의 구글 길찾기 링크들 (주소 우선 생성)
       createdAt: new Date().toISOString()
     }
 
@@ -820,6 +895,15 @@ watch(
                   <h4>{{ c.name }}</h4>
                   <p class="description">{{ c.description || '상세 내용 없음' }}</p>
                   <small class="date">📅 {{ new Date(c.createdAt).toLocaleDateString() }}</small>
+
+                  <!-- 각 구간 링크 표시 -->
+                  <div v-if="c.legs && c.legs.length" class="saved-legs" style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
+                    <div v-for="(leg, i) in c.legs" :key="i">
+                      <a :href="leg.url" target="_blank" rel="noopener" style="text-decoration:none; color:#0f172a; font-weight:700;">
+                        🚶 {{ leg.originName }} → {{ leg.destName }}
+                      </a>
+                    </div>
+                  </div>
                 </div>
                 <div class="course-actions-group">
                   <button class="btn-action-small import-replace" @click="loadSavedCourse(c, true)">덮어쓰기</button>
@@ -912,7 +996,6 @@ watch(
   overflow-y: auto;
   padding-right: 6px;
 }
-/* 사이드바 스크롤바 미려하게 다듬기 */
 .sidebar-panel::-webkit-scrollbar { width: 6px; }
 .sidebar-panel::-webkit-scrollbar-track { background: transparent; }
 .sidebar-panel::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -971,7 +1054,6 @@ watch(
 }
 .category-tag-chip.active { background: #2563eb !important; border-color: #2563eb !important; color: #fff !important; }
 
-/* 트리플 스타일 타임라인 설계 */
 .timeline-planner {
   background: #fafcff;
   border: 1.5px dashed rgba(59, 130, 246, 0.2);
@@ -1061,7 +1143,6 @@ watch(
 .summary-label { font-size: 0.75rem; font-weight: 800; color: #475569; }
 .summary-text { font-size: 0.8rem; margin: 2px 0 0 0; color: #1e293b; font-weight: 600; line-height: 1.4; }
 
-/* 장소 탐색 목록 그리드 */
 .place-explorer {
   flex: 1;
   display: flex;
@@ -1161,7 +1242,6 @@ watch(
 .btn-page:disabled { color: #cbd5e1; cursor: not-allowed; }
 .page-indicator { font-size: 0.82rem; color: #64748b; }
 
-/* 3-2. 우측 지도 컨테이너 */
 .map-container-wrap {
   flex: 1;
   position: relative;
@@ -1176,7 +1256,6 @@ watch(
   z-index: 5;
 }
 
-/* 지도 위 플로팅 타입 필터 */
 .map-floating-bar {
   position: absolute;
   top: 16px;
@@ -1206,7 +1285,6 @@ watch(
   border-color: #0f172a;
 }
 
-/* 4. 모달 스타일링 */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1258,7 +1336,6 @@ watch(
 .btn-modal.cancel { background: #f1f5f9; color: #475569; }
 .btn-modal.confirm { background: #2563eb; color: #fff; }
 
-/* 저장한 코스 리스트 */
 .saved-list-modern { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .saved-course-card {
   display: flex;
@@ -1278,7 +1355,6 @@ watch(
 .btn-action-small.import-add { background: #e0f2fe; color: #0369a1; }
 .btn-action-small.delete { background: #ffe4e6; color: #be123c; }
 
-/* 지도 팝업 카드 */
 :deep(.map-popup-card) {
   padding: 6px 2px;
   font-family: inherit;
@@ -1306,7 +1382,6 @@ watch(
   line-height: 1.35;
 }
 
-/* 5. 지도 핀 배지 디자인 개선 */
 :deep(.route-step-badge) {
   width: 28px;
   height: 28px;
@@ -1320,7 +1395,6 @@ watch(
   line-height: 1;
 }
 
-/* 트랜지션 애니메이션 */
 @keyframes slideUp {
   from { transform: translateY(20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
@@ -1328,7 +1402,6 @@ watch(
 .modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.2s ease; }
 .modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
 
-/* 반응형 모바일 대응 */
 @media (max-width: 1024px) {
   .trip-workspace { flex-direction: column; height: auto; }
   .sidebar-panel { width: 100%; flex: none; }
