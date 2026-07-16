@@ -1320,7 +1320,7 @@ function toggleBookmark(post) {
             <p v-if="commentErrors.content" class="field-error">{{ commentErrors.content }}</p>
             <p v-if="commentErrors.password" class="field-error">{{ commentErrors.password }}</p>
 
-            <div style="display:flex; gap:8px; margin-top:8px; justify-content:flex-start;">
+            <div style="display:flex; gap:8px; margin-top:8px; justify-content:flex-end;">
               <button type="button" class="btn-comment-submit" @click="submitComment(selectedPost.id)">{{ editingCommentId !== null ? "수정하기" : "작성하기" }}</button>
               <button v-if="editingCommentId !== null" type="button" @click="cancelEditComment" style="background:#ddd; color:#000; padding:8px 14px; border-radius:8px; border:none;">취소</button>
             </div>
@@ -2642,6 +2642,7 @@ select:focus {
 /* 작은 아이콘 정렬 */
 .comment-actions .icon { font-size: 14px; line-height: 1; }
 .comment-actions .label { display: inline-block; }
+.comment-actions-row { display:flex; gap:8px; margin-top:8px; justify-content:flex-end; }
 
 .sr-only {
   position: absolute;
